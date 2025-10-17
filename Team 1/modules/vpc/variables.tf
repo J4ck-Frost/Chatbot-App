@@ -1,14 +1,15 @@
-variable "vpc_name" {
-  description = "Name of the VPC"
+variable "project_id" {
+  description = "GCP Project ID"
   type        = string
 }
 
 variable "region" {
-  description = "Region for subnet"
+  description = "Region để tạo VPC"
   type        = string
 }
 
-variable "subnet_cidr" {
-  description = "CIDR block for subnet"
+variable "zone" {
+  description = "Zone để tạo VM"
   type        = string
+  default     = "asia-southeast1-a"
 }

@@ -1,7 +1,6 @@
 module "vpc" {
-  source = "../../modules/vpc"
-
-  vpc_name     = "dev-vpc"
-  region       = var.region
-  subnet_cidr  = "10.0.0.0/24"
+  source     = "../../modules/vpc"
+  project_id = var.project_id
+  region     = var.region
+  zone       = var.zone
 }
