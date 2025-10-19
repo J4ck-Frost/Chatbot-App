@@ -9,11 +9,11 @@ variable "location" {
 
 variable "repository_id" {
   description = "Name of the Artifact Registry repository"
-  type = string
+  type        = string
 }
 
 variable "format" {
   description = "Repository Format"
-  type = string
-  default = "DOCKER"
+  type        = string
+  default     = "DOCKER"
 }
