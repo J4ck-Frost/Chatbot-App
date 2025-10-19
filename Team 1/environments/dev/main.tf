@@ -36,3 +36,12 @@ module "app_bucket" {
     # }
   ]
 }
+
+module "sql" {
+  source        = "../../modules/sql"
+  instance_name = var.instance_name
+  region        = var.region
+  db_name       = var.db_name
+  db_user       = var.db_user
+  db_password   = var.db_password
+}
