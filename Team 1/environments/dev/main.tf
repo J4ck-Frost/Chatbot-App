@@ -43,3 +43,12 @@ module "sql" {
   db_user       = var.db_user
   db_password   = var.db_password
 }
+
+module "gke" {
+  source          = "../../modules/gke"
+  region          = var.region
+  cluster_name    = "cluster-1"
+  network         = module.vpc.vpc_name
+  subnetwork      = module.vpc.subnet_names[0]
+  service_account = "terraform-sa@logical-iridium-474603-b4.iam.gserviceaccount.com"
+}
