@@ -55,6 +55,6 @@ module "gke" {
   cpu_pool_machine_type = var.cpu_pool_machine_type
   cpu_pool_disk_size    = var.cpu_pool_disk_size
 
-  enable_gpu_pool = var.enable_gpu_pool
+  # enable_gpu_pool = var.enable_gpu_pool
 }
 
