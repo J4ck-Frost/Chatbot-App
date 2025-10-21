@@ -13,9 +13,10 @@ resource "google_container_cluster" "gke_cluster" {
     image_type = "COS_CONTAINERD"
     disk_type  = "pd-standard"
   }
-
+lifecycle {
+    ignore_changes = [node_pool]   
+  }
   # Disable autoscaling at cluster level
-#   enable_autopilot = false
 }
 
 # -------------------------------------------------------------------
@@ -29,8 +30,8 @@ resource "google_container_node_pool" "cpu_pool" {
   node_count = 1   # fixed, autoscaling off
 
   node_config {
-    machine_type = "e2-micro"
-    disk_size_gb = 15
+    machine_type = var.cpu_pool_machine_type
+    disk_size_gb = var.cpu_pool_disk_size
     image_type   = "COS_CONTAINERD"
 
     oauth_scopes = [
@@ -61,5 +62,58 @@ resource "google_container_node_pool" "cpu_pool" {
     auto_upgrade = true
   }
 
-  node_locations = ["asia-southeast1-a"]
-}
+    node_locations = ["asia-southeast1-a"]
+  }
+
+# -------------------------------------------------------------------
+# NODE POOL GPU 
+# -------------------------------------------------------------------
+# resource "google_container_node_pool" "gpu_pool" {
+#   count      = var.enable_gpu_pool ? 1 : 0 # cho phép bật/tắt
+#   name       = "pool-gpu"
+#   cluster    = google_container_cluster.gke_cluster.name
+#   location   = var.region
+#   node_count = 1
+
+#   node_config {
+#     machine_type = "n1-standard-1"          # nhỏ nhất có thể gắn GPU
+#     disk_size_gb = 15
+#     image_type   = "COS_CONTAINERD"
+
+#     guest_accelerator {
+#       type  = "nvidia-tesla-t4"             # GPU rẻ nhất
+#       count = 1
+#     }
+
+#     oauth_scopes = [
+#       "https://www.googleapis.com/auth/cloud-platform"
+#     ]
+
+#     labels = {
+#       pool_type = "gpu"
+#     }
+
+#     tags = ["gpu-node"]
+
+#     metadata = {
+#       disable-legacy-endpoints = "true"
+#     }
+
+#     service_account = var.service_account
+#   }
+
+#   management {
+#     auto_repair  = true
+#     auto_upgrade = true
+#   }
+
+#   node_locations = ["asia-southeast1-a"]
+
+#   lifecycle {
+#   ignore_changes = [
+#     node_config[0].guest_accelerator
+#   ]
+# }
+
+
+# }

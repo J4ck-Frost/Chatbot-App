@@ -47,8 +47,14 @@ module "sql" {
 module "gke" {
   source          = "../../modules/gke"
   region          = var.region
-  cluster_name    = "cluster-1"
+  cluster_name    = var.cluster_name
   network         = module.vpc.vpc_name
   subnetwork      = module.vpc.subnet_names[0]
-  service_account = "terraform-sa@logical-iridium-474603-b4.iam.gserviceaccount.com"
+  service_account = var.service_account_email
+
+  cpu_pool_machine_type = var.cpu_pool_machine_type
+  cpu_pool_disk_size    = var.cpu_pool_disk_size
+
+  enable_gpu_pool = var.enable_gpu_pool
 }
+

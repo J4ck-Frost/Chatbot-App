@@ -22,3 +22,22 @@ variable "service_account" {
   description = "Service account email for node pool"
   type        = string
 }
+
+variable "cpu_pool_machine_type" {
+  description = "Machine type for the CPU node pool"
+  type        = string
+  
+}
+
+variable "cpu_pool_disk_size" {
+  description = "Disk size (in GB) for the CPU node pool"
+  type        = number
+  
+}
+
+variable "enable_gpu_pool" {
+  description = "Bật/tắt GPU node pool"
+  type        = bool
+  default     = true
+}
+
