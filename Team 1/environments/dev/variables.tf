@@ -26,6 +26,7 @@ variable "project_name" {
 variable "project_id" {
   description = "GCP Project ID"
   type        = string
+  default     = "logical-iridium-474603-b4"
 }
 
 variable "region" {

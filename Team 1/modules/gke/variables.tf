@@ -1,11 +1,13 @@
 variable "region" {
   description = "Region for GKE cluster"
   type        = string
+  default     = "asia-southeast1"
 }
 
 variable "cluster_name" {
   description = "Cluster name"
   type        = string
+  default     = "cluster1"
 }
 
 variable "network" {
@@ -26,18 +28,18 @@ variable "service_account" {
 variable "cpu_pool_machine_type" {
   description = "Machine type for the CPU node pool"
   type        = string
-  
+  default     = "e2-micro"
 }
 
 variable "cpu_pool_disk_size" {
   description = "Disk size (in GB) for the CPU node pool"
   type        = number
-  
+  default     = 15
 }
 
 variable "enable_gpu_pool" {
   description = "Bật/tắt GPU node pool"
   type        = bool
-  default     = true
+  default     = false
 }
 

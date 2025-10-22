@@ -12,4 +12,4 @@ service_account_email = <Your_service_account_email>
 cpu_pool_machine_type = <Your_cpu_pool_machine_type>
 cpu_pool_disk_size    = <Your_cpu_pool_disk_size>
 enable_gpu_pool       = <true_or_false>
-cluster_name = <Your_cluster_name>
+cluster_name          = <Your_cluster_name>

@@ -1,6 +1,4 @@
-# ------------------------
 # Outputs cho module VPC
-# ------------------------
 
 # Tên VPC
 output "vpc_name" {

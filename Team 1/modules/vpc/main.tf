@@ -11,13 +11,12 @@ terraform {
 
 provider "google" {
 
-  project = "logical-iridium-474603-b4"
+  project = var.project_id
   region  = var.region
 }
 
-# ------------------------
 # 1. Tạo VPC
-# ------------------------
+
 resource "google_compute_network" "vpc_network" {
   name                    = "second-vpc"
   auto_create_subnetworks = false
@@ -25,9 +24,8 @@ resource "google_compute_network" "vpc_network" {
   project                 = var.project_id
 }
 
-# ------------------------
 # 2. Tạo subnet cho từng zone
-# ------------------------
+
 resource "google_compute_subnetwork" "subnet_a" {
   name          = "subnet-asia-southeast1-a"
   ip_cidr_range = "10.0.0.0/24"
@@ -52,9 +50,8 @@ resource "google_compute_subnetwork" "subnet_c" {
   project       = var.project_id
 }
 
-# ------------------------
 # 3. Tạo firewall rule
-# ------------------------
+
 resource "google_compute_firewall" "allow_ssh_http" {
   name    = "allow-ssh-http"
   network = google_compute_network.vpc_network.name
