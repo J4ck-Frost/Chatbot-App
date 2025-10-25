@@ -3,6 +3,11 @@ variable "instance_name" {
 	type        = string
 }
 
+variable "project_id" {
+	description = "The GCP project ID."
+	type        = string
+}
+
 variable "database_version" {
 	description = "The database version to use."
 	type        = string
@@ -15,7 +20,7 @@ variable "region" {
 }
 
 variable "tier" {
-	description = "The machine type for the instance."
+	description = "The machine type for the Cloud SQL instance."
 	type        = string
 	default     = "db-f1-micro"
 }
@@ -46,4 +51,9 @@ variable "db_password" {
 	description = "The password for the default user."
 	type        = string
 	sensitive   = true
+}
+
+variable "vpc_network_id" {
+	description = "The ID of the VPC network for private IP"
+	type        = string
 }
