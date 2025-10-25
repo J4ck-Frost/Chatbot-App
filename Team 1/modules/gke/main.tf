@@ -1,3 +1,9 @@
+# Enable required APIs
+resource "google_project_service" "container_api" {
+  service = "container.googleapis.com"
+  disable_on_destroy = false
+}
+
 resource "google_container_cluster" "gke_cluster" {
   name                     = var.cluster_name
   location                 = var.region
@@ -7,6 +13,8 @@ resource "google_container_cluster" "gke_cluster" {
 
   network    = var.network
   subnetwork = var.subnetwork
+
+  depends_on = [google_project_service.container_api]
 
   # COS (Container-Optimized OS)
   node_config {
