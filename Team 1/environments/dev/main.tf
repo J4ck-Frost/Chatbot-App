@@ -1,10 +1,15 @@
 module "vpc" {
-
   source     = "../../modules/vpc"
   project_id = var.project_id
   region     = var.region
   zone       = var.zone
+}
 
+module "artifact_registry" {
+  source        = "../../modules/artifact_registry"
+  project_id    = var.project_id
+  location      = var.region
+  repository_id = var.repository_id
 }
 
 module "artifact_registry" {
@@ -78,3 +83,18 @@ output "sql_database_user" {
   description = "PostgreSQL database user"
   value       = module.sql.database_user
 }
+
+module "gke" {
+  source          = "../../modules/gke"
+  region          = var.region
+  cluster_name    = var.cluster_name
+  network         = module.vpc.vpc_name
+  subnetwork      = module.vpc.subnet_names[0]
+  service_account = var.service_account_email
+
+  cpu_pool_machine_type = var.cpu_pool_machine_type
+  cpu_pool_disk_size    = var.cpu_pool_disk_size
+
+  # enable_gpu_pool = var.enable_gpu_pool
+}
+
