@@ -10,7 +10,7 @@ variable "project_id" {
 
 variable "location" {
   type        = string
-  default     = "US"
+  default     = "ASIA"
   description = "Bucket location/region"
 }
 

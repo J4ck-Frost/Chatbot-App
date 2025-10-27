@@ -26,24 +26,24 @@ resource "google_compute_network" "vpc_network" {
 
 # 2. Tạo subnet cho từng zone
 
-resource "google_compute_subnetwork" "subnet_a" {
-  name          = "subnet-asia-southeast1-a"
+resource "google_compute_subnetwork" "subnet_1" {
+  name          = "subnet-1"
   ip_cidr_range = "10.0.0.0/24"
   region        = var.region
   network       = google_compute_network.vpc_network.id
   project       = var.project_id
 }
 
-resource "google_compute_subnetwork" "subnet_b" {
-  name          = "subnet-asia-southeast1-b"
+resource "google_compute_subnetwork" "subnet_2" {
+  name          = "subnet-2"
   ip_cidr_range = "10.0.1.0/24"
   region        = var.region
   network       = google_compute_network.vpc_network.id
   project       = var.project_id
 }
 
-resource "google_compute_subnetwork" "subnet_c" {
-  name          = "subnet-asia-southeast1-c"
+resource "google_compute_subnetwork" "subnet_3" {
+  name          = "subnet-3"
   ip_cidr_range = "10.0.2.0/24"
   region        = var.region
   network       = google_compute_network.vpc_network.id
