@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-test-app
+  labels:
+    app: postgres-test-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-test-app
+  template:
+    metadata:
+      labels:
+        app: postgres-test-app
+    spec:
+      containers:
+      - name: postgres-test-app
+        image: asia-southeast1-docker.pkg.dev/devopts-k2-advance/my-registry/postgres-test-app:latest
+        ports:
+        - containerPort: 3000
+        env:
+        - name: DB_HOST
+          value: "10.106.0.5"
+        - name: DB_PORT
+          value: "5432"
+        - name: DB_NAME
+          value: "postgres-db"
+        - name: DB_USER
+          value: "postgres"
+        - name: DB_PASSWORD
+          value: "abcxyz"
+        resources:
+          requests:
+            memory: "32Mi"
+            cpu: "25m"
+          limits:
+            memory: "64Mi"
+            cpu: "50m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-test-app-service
+spec:
+  selector:
+    app: postgres-test-app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000
+  type: LoadBalancer
