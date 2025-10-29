@@ -26,7 +26,7 @@ variable "project_name" {
 variable "project_id" {
   description = "GCP Project ID"
   type        = string
-  default     = "logical-iridium-474603-b4"
+  default     = "striking-figure-474817-a3"
 }
 
 variable "region" {
@@ -56,13 +56,13 @@ variable "instance_name" {
 variable "service_account_email" {
   description = "The email of the service account to be used by GKE nodes."
   type        = string
-
+  default = "terraform-deployer@striking-figure-474817-a3.iam.gserviceaccount.com"
 }
 
 variable "cpu_pool_machine_type" {
   description = "Machine type for the CPU node pool"
   type        = string
-  default     = "e2-micro"
+  default     = "e2-standard-2"
 }
 
 variable "cpu_pool_disk_size" {

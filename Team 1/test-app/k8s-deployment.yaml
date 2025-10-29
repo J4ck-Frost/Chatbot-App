@@ -14,22 +14,25 @@ spec:
       labels:
         app: postgres-test-app
     spec:
+      serviceAccountName: postgres-test-app-sa
       containers:
       - name: postgres-test-app
-        image: asia-southeast1-docker.pkg.dev/devopts-k2-advance/my-registry/postgres-test-app:latest
+        image: asia-southeast1-docker.pkg.dev/striking-figure-474817-a3/team1-ai-repo/postgres-test-app:latest
         ports:
         - containerPort: 3000
         env:
         - name: DB_HOST
-          value: "10.106.0.5"
+          value: "127.0.0.1"
         - name: DB_PORT
           value: "5432"
         - name: DB_NAME
-          value: "postgres-db"
+          value: "num1-database"
         - name: DB_USER
-          value: "postgres"
+          value: "num1-user"
         - name: DB_PASSWORD
-          value: "abcxyz"
+          value: "Abc@12345678"
+        - name: DB_SSL_MODE
+          value: "disable"
         resources:
           requests:
             memory: "32Mi"
@@ -37,6 +40,15 @@ spec:
           limits:
             memory: "64Mi"
             cpu: "50m"
+
+        # --- Cloud SQL Auth Proxy sidecar ---
+      - name: cloud-sql-proxy
+        image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.10.1
+        args:
+          - "striking-figure-474817-a3:asia-southeast1:sql-instance-dev"
+          - "--port=5432"
+          - "--private-ip"
+
 ---
 apiVersion: v1
 kind: Service

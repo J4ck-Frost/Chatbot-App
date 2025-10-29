@@ -16,9 +16,9 @@ output "vpc_self_link" {
 output "subnet_names" {
   description = "Tên các subnet được tạo"
   value = [
-    google_compute_subnetwork.subnet_a.name,
-    google_compute_subnetwork.subnet_b.name,
-    google_compute_subnetwork.subnet_c.name
+    google_compute_subnetwork.subnet_1.name,
+    google_compute_subnetwork.subnet_2.name,
+    google_compute_subnetwork.subnet_3.name
   ]
 }
 
@@ -26,16 +26,16 @@ output "subnet_names" {
 output "subnet_cidrs" {
   description = "CIDR range của từng subnet"
   value = [
-    google_compute_subnetwork.subnet_a.ip_cidr_range,
-    google_compute_subnetwork.subnet_b.ip_cidr_range,
-    google_compute_subnetwork.subnet_c.ip_cidr_range
+    google_compute_subnetwork.subnet_1.ip_cidr_range,
+    google_compute_subnetwork.subnet_2.ip_cidr_range,
+    google_compute_subnetwork.subnet_3.ip_cidr_range
   ]
 }
 
 # Region của subnet (đều giống nhau)
 output "region" {
   description = "Region của các subnet"
-  value       = google_compute_subnetwork.subnet_a.region
+  value       = google_compute_subnetwork.subnet_1.region
 }
 
 # ID của VPC để module khác (như GKE, SQL, VM) có thể dùng
@@ -47,5 +47,5 @@ output "vpc_id" {
 # ID của subnet A (thường dùng để gắn VM/GKE)
 output "subnet_a_id" {
   description = "ID của subnet zone A"
-  value       = google_compute_subnetwork.subnet_a.id
+  value       = google_compute_subnetwork.subnet_1.id
 }

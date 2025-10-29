@@ -9,12 +9,6 @@ terraform {
   }
 }
 
-provider "google" {
-
-  project = var.project_id
-  region  = var.region
-}
-
 # 1. Tạo VPC
 
 resource "google_compute_network" "vpc_network" {
@@ -32,6 +26,7 @@ resource "google_compute_subnetwork" "subnet_1" {
   region        = var.region
   network       = google_compute_network.vpc_network.id
   project       = var.project_id
+  private_ip_google_access = true
 }
 
 resource "google_compute_subnetwork" "subnet_2" {
@@ -40,6 +35,7 @@ resource "google_compute_subnetwork" "subnet_2" {
   region        = var.region
   network       = google_compute_network.vpc_network.id
   project       = var.project_id
+  private_ip_google_access = true
 }
 
 resource "google_compute_subnetwork" "subnet_3" {
@@ -48,6 +44,7 @@ resource "google_compute_subnetwork" "subnet_3" {
   region        = var.region
   network       = google_compute_network.vpc_network.id
   project       = var.project_id
+  private_ip_google_access = true
 }
 
 # 3. Tạo firewall rule
