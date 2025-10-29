@@ -83,3 +83,11 @@ variable "cluster_name" {
   default     = "gke-cluster-dev"
 
 }
+
+
+variable "vpc_name" {
+  description = "VPC name"
+  type        = string
+  default     = "team1-vpc-dev"
+  
+}

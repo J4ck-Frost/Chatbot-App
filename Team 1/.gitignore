@@ -11,3 +11,5 @@ terraform.tfstate
 terraform.tfvars
 
 terraform.tfstate.1761017945.backup
+
+test-app
