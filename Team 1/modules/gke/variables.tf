@@ -28,7 +28,6 @@ variable "service_account" {
 variable "cpu_pool_machine_type" {
   description = "Machine type for the CPU node pool"
   type        = string
-  default     = "e2-micro"
 }
 
 variable "cpu_pool_disk_size" {
