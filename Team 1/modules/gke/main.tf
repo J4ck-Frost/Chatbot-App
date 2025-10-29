@@ -15,6 +15,10 @@ resource "google_container_cluster" "gke_cluster" {
   subnetwork = var.subnetwork
 
   depends_on = [google_project_service.container_api]
+   # Workload Identity
+  workload_identity_config {
+    workload_pool = "${var.project_id}.svc.id.goog"
+  }
 
   # COS (Container-Optimized OS)
   node_config {

@@ -3,7 +3,11 @@ variable "region" {
   type        = string
   default     = "asia-southeast1"
 }
-
+variable "project_id" {
+  description = "GCP Project ID"
+  type        = string
+  
+}
 variable "cluster_name" {
   description = "Cluster name"
   type        = string
