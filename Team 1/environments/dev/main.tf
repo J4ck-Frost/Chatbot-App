@@ -79,6 +79,7 @@ output "sql_database_user" {
 
 module "gke" {
   source          = "../../modules/gke"
+  project_id      = var.project_id
   region          = var.region
   cluster_name    = var.cluster_name
   network         = module.vpc.vpc_name

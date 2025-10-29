@@ -17,12 +17,15 @@ variable "cluster_name" {
 variable "network" {
   description = "VPC network name or ID"
   type        = string
+  default     = "main-vpc"
 }
 
 variable "subnetwork" {
   description = "Subnetwork name or ID"
   type        = string
+  default     = "subnet-asia-southeast1"
 }
+
 
 variable "service_account" {
   description = "Service account email for node pool"
@@ -32,6 +35,7 @@ variable "service_account" {
 variable "cpu_pool_machine_type" {
   description = "Machine type for the CPU node pool"
   type        = string
+  default     = "e2-micro"
 }
 
 variable "cpu_pool_disk_size" {
@@ -46,3 +50,8 @@ variable "enable_gpu_pool" {
   default     = false
 }
 
+variable "node_zones" {
+  type        = list(string)
+  description = "Danh sách zone triển khai node pool"
+  default     = ["asia-southeast1-a", "asia-southeast1-b", "asia-southeast1-c"]
+}

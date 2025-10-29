@@ -27,14 +27,14 @@ resource "google_compute_subnetwork" "subnet_2" {
   private_ip_google_access = true
 }
 
-# resource "google_compute_subnetwork" "subnet_3" {
-#   name          = "subnet-3"
-#   ip_cidr_range = "10.0.2.0/24"
-#   region        = var.region
-#   network       = google_compute_network.vpc_network.id
-#   project       = var.project_id
-#   private_ip_google_access = true
-# }
+resource "google_compute_subnetwork" "subnet_3" {
+  name          = "subnet-3"
+  ip_cidr_range = "10.0.2.0/24"
+  region        = var.region
+  network       = google_compute_network.vpc_network.id
+  project       = var.project_id
+  private_ip_google_access = true
+}
 
 # 3. Tạo firewall rule
 
