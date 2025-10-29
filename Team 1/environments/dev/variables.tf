@@ -56,7 +56,7 @@ variable "instance_name" {
 variable "service_account_email" {
   description = "The email of the service account to be used by GKE nodes."
   type        = string
-  default = "terraform-deployer@striking-figure-474817-a3.iam.gserviceaccount.com"
+  default     = "terraform-deployer@striking-figure-474817-a3.iam.gserviceaccount.com"
 }
 
 variable "cpu_pool_machine_type" {
@@ -81,5 +81,13 @@ variable "cluster_name" {
   description = "GKE cluster name"
   type        = string
   default     = "gke-cluster-dev"
+
+}
+
+
+variable "vpc_name" {
+  description = "VPC name"
+  type        = string
+  default     = "team1-vpc-dev"
 
 }

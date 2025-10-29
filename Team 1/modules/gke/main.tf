@@ -1,12 +1,16 @@
+
 # Enable required APIs
+
 resource "google_project_service" "container_api" {
   service = "container.googleapis.com"
   disable_on_destroy = false
 }
 
+# GKE Cluster (regional, multi-zonal)
+
 resource "google_container_cluster" "gke_cluster" {
   name                     = var.cluster_name
-  location                 = var.region
+  location                 = var.region                      # asia-southeast1
   remove_default_node_pool = true
   deletion_protection      = false
   initial_node_count       = 1
@@ -16,30 +20,36 @@ resource "google_container_cluster" "gke_cluster" {
 
   depends_on = [google_project_service.container_api]
 
-  # COS (Container-Optimized OS)
+  # Bật Workload Identity
+  workload_identity_config {
+    workload_pool = "${var.project_id}.svc.id.goog"
+  }
+
+  # Cấu hình mặc định cho control plane
   node_config {
     image_type = "COS_CONTAINERD"
     disk_type  = "pd-standard"
   }
+
   lifecycle {
     ignore_changes = [node_pool]
   }
-  # Disable autoscaling at cluster level
 }
 
-# NODE POOL CPU 
+# CPU Node Pool (multi-zone, 1 node/zone)
 
 resource "google_container_node_pool" "cpu_pool" {
   name     = "pool-cpu"
   cluster  = google_container_cluster.gke_cluster.name
-  location = var.region
+  location = var.region                                    # asia-southeast1
 
-  node_count = 1 # fixed, autoscaling off
+  node_count = 2                                      # tổng 2 node, mỗi zone 1 node
 
   node_config {
-    machine_type = var.cpu_pool_machine_type
-    disk_size_gb = var.cpu_pool_disk_size
-    image_type   = "COS_CONTAINERD"
+    machine_type    = var.cpu_pool_machine_type
+    disk_size_gb    = var.cpu_pool_disk_size
+    image_type      = "COS_CONTAINERD"
+    service_account = var.service_account
 
     oauth_scopes = [
       "https://www.googleapis.com/auth/cloud-platform"
@@ -54,14 +64,11 @@ resource "google_container_node_pool" "cpu_pool" {
     metadata = {
       disable-legacy-endpoints = "true"
     }
-
-    service_account = var.service_account
   }
 
-  # Không bật autoscaling
   autoscaling {
-    min_node_count = 1
-    max_node_count = 1
+    min_node_count = 2
+    max_node_count = 2
   }
 
   management {
@@ -69,7 +76,9 @@ resource "google_container_node_pool" "cpu_pool" {
     auto_upgrade = true
   }
 
-  node_locations = ["asia-southeast1-a"]
+  # Triển khai node ở cả 2 zone
+  node_locations = var.node_zones
+
 }
 
 # NODE POOL GPU 

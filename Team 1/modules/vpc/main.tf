@@ -1,18 +1,7 @@
-terraform {
-  required_version = ">= 1.5.0"
-
-  required_providers {
-    google = {
-      source  = "hashicorp/google"
-      version = "~> 6.0"
-    }
-  }
-}
-
 # 1. Tạo VPC
 
 resource "google_compute_network" "vpc_network" {
-  name                    = "second-vpc"
+  name                    = var.vpc_name
   auto_create_subnetworks = false
   mtu                     = 1460
   project                 = var.project_id
@@ -22,7 +11,7 @@ resource "google_compute_network" "vpc_network" {
 
 resource "google_compute_subnetwork" "subnet_1" {
   name          = "subnet-1"
-  ip_cidr_range = "10.0.0.0/24"
+  ip_cidr_range = "10.10.1.0/24"
   region        = var.region
   network       = google_compute_network.vpc_network.id
   project       = var.project_id
@@ -31,7 +20,7 @@ resource "google_compute_subnetwork" "subnet_1" {
 
 resource "google_compute_subnetwork" "subnet_2" {
   name          = "subnet-2"
-  ip_cidr_range = "10.0.1.0/24"
+  ip_cidr_range = "10.10.2.0/24"
   region        = var.region
   network       = google_compute_network.vpc_network.id
   project       = var.project_id
