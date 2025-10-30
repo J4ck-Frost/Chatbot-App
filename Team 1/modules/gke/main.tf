@@ -1,16 +1,8 @@
-
-# Enable required APIs
-
-resource "google_project_service" "container_api" {
-  service = "container.googleapis.com"
-  disable_on_destroy = false
-}
-
 # GKE Cluster (regional, multi-zonal)
 
 resource "google_container_cluster" "gke_cluster" {
   name                     = var.cluster_name
-  location                 = var.region                      # asia-southeast1
+  location                 = var.region                      
   remove_default_node_pool = true
   deletion_protection      = false
   initial_node_count       = 1
@@ -18,17 +10,9 @@ resource "google_container_cluster" "gke_cluster" {
   network    = var.network
   subnetwork = var.subnetwork
 
-  depends_on = [google_project_service.container_api]
-
   # Bật Workload Identity
   workload_identity_config {
     workload_pool = "${var.project_id}.svc.id.goog"
-  }
-
-  # Cấu hình mặc định cho control plane
-  node_config {
-    image_type = "COS_CONTAINERD"
-    disk_type  = "pd-standard"
   }
 
   lifecycle {
@@ -36,20 +20,43 @@ resource "google_container_cluster" "gke_cluster" {
   }
 }
 
-# CPU Node Pool (multi-zone, 1 node/zone)
+# Optional: create a dedicated GCP service account for GKE node workloads
+resource "google_service_account" "node_sa" {
+  count        = var.create_node_service_account ? 1 : 0
+  account_id   = var.node_service_account_id
+  display_name = "GKE node/service workload service account"
+  project      = var.project_id
+}
 
+# Determine the service account email used on nodes (either provided or created)
+locals {
+  node_sa_email = length(var.service_account) > 0 ? var.service_account : (
+    var.create_node_service_account ? google_service_account.node_sa[0].email : ""
+  )
+}
+
+# Grant IAM roles to node/service account so workloads can access required services
+resource "google_project_iam_member" "node_sa_roles" {
+  for_each = toset(var.node_service_account_roles)
+
+  project = var.project_id
+  role    = each.key
+  member  = "serviceAccount:${local.node_sa_email}"
+}
+
+# CPU Node Pool (multi-zone)
 resource "google_container_node_pool" "cpu_pool" {
-  name     = "pool-cpu"
+  name     = "cpu-pool"
   cluster  = google_container_cluster.gke_cluster.name
-  location = var.region                                    # asia-southeast1
+  location = var.region
 
-  node_count = 2                                      # tổng 2 node, mỗi zone 1 node
+  node_count = var.cpu_node_count
 
   node_config {
     machine_type    = var.cpu_pool_machine_type
     disk_size_gb    = var.cpu_pool_disk_size
     image_type      = "COS_CONTAINERD"
-    service_account = var.service_account
+    service_account = local.node_sa_email != "" ? local.node_sa_email : var.service_account
 
     oauth_scopes = [
       "https://www.googleapis.com/auth/cloud-platform"
@@ -67,8 +74,8 @@ resource "google_container_node_pool" "cpu_pool" {
   }
 
   autoscaling {
-    min_node_count = 2
-    max_node_count = 2
+    min_node_count = var.cpu_node_autoscaling_min
+    max_node_count = var.cpu_node_autoscaling_max
   }
 
   management {
@@ -76,28 +83,25 @@ resource "google_container_node_pool" "cpu_pool" {
     auto_upgrade = true
   }
 
-  # Triển khai node ở cả 2 zone
   node_locations = var.node_zones
-
 }
 
-# NODE POOL GPU 
-
+# Optional GPU node pool (kept commented in original; enable via var.enable_gpu_pool)
 # resource "google_container_node_pool" "gpu_pool" {
-#   count      = var.enable_gpu_pool ? 1 : 0 # cho phép bật/tắt
-#   name       = "pool-gpu"
-#   cluster    = google_container_cluster.gke_cluster.name
-#   location   = var.region
-#   node_count = 1
+#   count    = var.enable_gpu_pool ? 1 : 0
+#   name     = "pool-gpu"
+#   cluster  = google_container_cluster.gke_cluster.name
+#   location = var.region
+#   node_count = var.gpu_node_count
 
 #   node_config {
-#     machine_type = "n1-standard-1"          # nhỏ nhất có thể gắn GPU
-#     disk_size_gb = 15
+#     machine_type = var.gpu_machine_type
+#     disk_size_gb = var.gpu_disk_size
 #     image_type   = "COS_CONTAINERD"
 
 #     guest_accelerator {
-#       type  = "nvidia-tesla-t4"             # GPU rẻ nhất
-#       count = 1
+#       type  = var.gpu_type
+#       count = var.gpu_count
 #     }
 
 #     oauth_scopes = [
@@ -114,7 +118,7 @@ resource "google_container_node_pool" "cpu_pool" {
 #       disable-legacy-endpoints = "true"
 #     }
 
-#     service_account = var.service_account
+#     service_account = local.node_sa_email != "" ? local.node_sa_email : var.service_account
 #   }
 
 #   management {
@@ -122,13 +126,11 @@ resource "google_container_node_pool" "cpu_pool" {
 #     auto_upgrade = true
 #   }
 
-#   node_locations = ["asia-southeast1-a"]
+#   node_locations = var.gpu_node_zones
 
 #   lifecycle {
-#   ignore_changes = [
-#     node_config[0].guest_accelerator
-#   ]
-# }
-
-
+#     ignore_changes = [
+#       node_config[0].guest_accelerator
+#     ]
+#   }
 # }

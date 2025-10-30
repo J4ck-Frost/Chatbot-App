@@ -1,99 +1,191 @@
+// Variables for environment "dev" used by main.tf modules
 
-variable "db_name" {
-  description = "The name of the default database."
+variable "project_id" {
+  description = "GCP project id"
   type        = string
-  default     = "num1-database"
-}
-
-variable "db_user" {
-  description = "The name of the default user."
-  type        = string
-  default     = "num1-user"
-}
-
-variable "db_password" {
-  description = "The password for the default user."
-  type        = string
-  default     = "Abc@12345678"
 }
 
 variable "project_name" {
-  description = "GCP project name"
+  description = "Short project name used for resource naming"
   type        = string
-  default     = "terraform-gcp-team1-dev"
-}
-
-variable "project_id" {
-  description = "GCP Project ID"
-  type        = string
-  default     = "striking-figure-474817-a3"
 }
 
 variable "region" {
-  description = "Region cho môi trường dev"
+  description = "Primary region for resources (GCP)"
   type        = string
-  default     = "asia-southeast1"
+  default     = "us-central1"
 }
 
-variable "repository_id" {
-  description = "Name of the Artifact Registry repository"
-  type        = string
-  default     = "team1-ai-repo"
-}
-
-variable "zone" {
-  description = "Zone cho môi trường dev"
-  type        = string
-  default     = "asia-southeast1-a"
-}
-
-variable "instance_name" {
-  description = "The name of the Cloud SQL instance."
-  type        = string
-  default     = "sql-instance-dev"
-}
-
-variable "service_account_email" {
-  description = "The email of the service account to be used by GKE nodes."
-  type        = string
-  default     = "terraform-deployer@striking-figure-474817-a3.iam.gserviceaccount.com"
-}
-
-variable "cpu_pool_machine_type" {
-  description = "Machine type for the CPU node pool"
-  type        = string
-  default     = "e2-standard-2"
-}
-
-variable "cpu_pool_disk_size" {
-  description = "Disk size (in GB) for the CPU node pool"
-  type        = number
-  default     = 15
-}
-
-variable "enable_gpu_pool" {
-  description = "Bật/tắt GPU node pool"
-  type        = bool
-  default     = true
-}
-
-variable "cluster_name" {
-  description = "GKE cluster name"
-  type        = string
-  default     = "gke-cluster-dev"
-}
-
+# VPC / networking
 variable "vpc_name" {
-  description = "Name of the VPC network"
+  description = "Name of the VPC network to create/use"
   type        = string
   default     = "dev-vpc"
 }
 
 variable "subnets_list" {
-  description = "List of subnet configurations"
+  description = "List of subnet objects to create in the VPC"
   type = list(object({
     name          = string
     ip_cidr_range = string
     region        = string
   }))
+  default = []
+}
+
+# GKE cluster
+variable "cluster_name" {
+  description = "GKE cluster name"
+  type        = string
+  default     = "app-cluster"
+}
+
+variable "service_account_email" {
+  description = "Existing GCP service account email to attach to node pool (leave empty to create one)"
+  type        = string
+  default     = ""
+}
+
+variable "create_node_service_account" {
+  description = "If true, module will create a GCP service account to use for node workloads"
+  type        = bool
+  default     = false
+}
+
+variable "node_service_account_id" {
+  description = "Account id (local-part) for created GCP service account (no project suffix)"
+  type        = string
+  default     = "gke-node-sa"
+}
+
+variable "node_service_account_roles" {
+  description = "List of IAM roles to grant to the node/service account"
+  type        = list(string)
+  default     = [
+    "roles/artifactregistry.reader",
+    "roles/storage.objectViewer", 
+    "roles/logging.logWriter",
+    "roles/monitoring.metricWriter",
+    "roles/stackdriver.resourceMetadata.writer"
+  ]
+}
+
+# CPU node pool
+variable "cpu_pool_machine_type" {
+  description = "Machine type for CPU node pool"
+  type        = string
+  default     = "e2-micro"
+}
+
+variable "cpu_pool_disk_size" {
+  description = "Disk size (GB) for CPU node pool"
+  type        = number
+  default     = 10
+}
+
+variable "cpu_node_count" {
+  description = "Initial node count for CPU pool"
+  type        = number
+  default     = 2
+}
+
+variable "cpu_node_autoscaling_min" {
+  description = "Autoscaling min for CPU pool"
+  type        = number
+  default     = 1
+}
+
+variable "cpu_node_autoscaling_max" {
+  description = "Autoscaling max for CPU pool"
+  type        = number
+  default     = 3
+}
+
+variable "node_zones" {
+  description = "List of zones for node pool placement"
+  type        = list(string)
+  default     = []
+}
+
+# GPU node pool (optional)
+variable "enable_gpu_pool" {
+  description = "Enable GPU node pool"
+  type        = bool
+  default     = false
+}
+
+variable "gpu_node_count" {
+  description = "Node count for GPU pool"
+  type        = number
+  default     = 1
+}
+
+variable "gpu_machine_type" {
+  description = "Machine type for GPU nodes"
+  type        = string
+  default     = "n1-standard-1"
+}
+
+variable "gpu_disk_size" {
+  description = "Disk size (GB) for GPU nodes"
+  type        = number
+  default     = 15
+}
+
+variable "gpu_type" {
+  description = "GPU type"
+  type        = string
+  default     = "nvidia-tesla-t4"
+}
+
+variable "gpu_count" {
+  description = "Number of GPUs per GPU node"
+  type        = number
+  default     = 1
+}
+
+variable "gpu_node_zones" {
+  description = "Zones for GPU node pool"
+  type        = list(string)
+  default     = []
+}
+
+# Artifact Registry
+variable "repository_id" {
+  description = "Artifact Registry repository id (name)"
+  type        = string
+  default     = "app-repo"
+}
+
+# Cloud Storage / Bucket
+variable "bucket_name" {
+  description = "Optional explicit bucket name (if omitted module may build one)"
+  type        = string
+  default     = ""
+}
+
+# Cloud SQL
+variable "instance_name" {
+  description = "Cloud SQL instance name"
+  type        = string
+  default     = "sql-instance"
+}
+
+variable "db_name" {
+  description = "Database name"
+  type        = string
+  default     = "db_name"
+}
+
+variable "db_user" {
+  description = "Database user"
+  type        = string
+  default     = "db_user"
+}
+
+variable "db_password" {
+  description = "Database password (sensitive)"
+  type        = string
+  default     = ""
+  sensitive   = true
 }

@@ -17,6 +17,9 @@ resource "google_project_service" "enable_apis" {
     
     # Cloud Resource Manager API - For managing GCP project resources and hierarchy
     "cloudresourcemanager.googleapis.com",
+
+    # Container API - Required for Google Kubernetes Engine (GKE)
+    "container.googleapis.com",
   ])
 
   project = var.project_id

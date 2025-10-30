@@ -54,3 +54,8 @@ variable "iam_bindings" {
   default     = []
   description = "Bucket IAM bindings - list of { role = string, members = [\"user:..., serviceAccount:...\", ...] }"
 }
+
+variable "gke_service_account" {
+  description = "GKE service account email that needs access to the bucket"
+  type        = string
+}

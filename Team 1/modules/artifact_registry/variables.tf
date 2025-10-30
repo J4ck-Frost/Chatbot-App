@@ -1,19 +1,25 @@
 variable "project_id" {
-  description = "GCP project ID"
+  description = "GCP Project ID"
   type        = string
 }
+
 variable "location" {
-  description = "Region to create artifact registry"
+  description = "Location for the artifact registry"
   type        = string
 }
 
 variable "repository_id" {
-  description = "Name of the Artifact Registry repository"
-  type = string
+  description = "ID of the repository"
+  type        = string
 }
 
 variable "format" {
-  description = "Repository Format"
-  type = string
-  default = "DOCKER"
+  description = "Format of the repository"
+  type        = string
+  default     = "DOCKER"
+}
+
+variable "gke_service_account" {
+  description = "GKE service account email that needs access to pull images"
+  type        = string
 }

@@ -1,57 +1,130 @@
-variable "region" {
-  description = "Region for GKE cluster"
-  type        = string
-  default     = "asia-southeast1"
-}
 variable "project_id" {
-  description = "GCP Project ID"
+  description = "GCP project id"
   type        = string
-  
 }
+
 variable "cluster_name" {
-  description = "Cluster name"
+  description = "GKE cluster name"
   type        = string
-  default     = "cluster1"
+}
+
+variable "region" {
+  description = "Cluster region (or location for zonal cluster)"
+  type        = string
 }
 
 variable "network" {
-  description = "VPC network name or ID"
+  description = "VPC network self link or name"
   type        = string
-  default     = "main-vpc"
 }
 
 variable "subnetwork" {
-  description = "Subnetwork name or ID"
+  description = "Subnetwork self link or name"
   type        = string
-  default     = "subnet-asia-southeast1"
 }
 
-
 variable "service_account" {
-  description = "Service account email for node pool"
+  description = "Existing GCP service account email to attach to node pool (leave empty to create one)"
   type        = string
+  default     = ""
+}
+
+variable "create_node_service_account" {
+  description = "If true, module will create a GCP service account to use for node workloads"
+  type        = bool
+  default     = false
+}
+
+variable "node_service_account_id" {
+  description = "Account id (local-part) for created GCP service account (no project suffix)"
+  type        = string
+  default     = "gke-node-sa"
+}
+
+variable "node_service_account_roles" {
+  description = "List of IAM roles to grant to the node/service account (artifact pull, storage access, cloudsql client, ...)"
+  type        = list(string)
+  default     = [
+    "roles/artifactregistry.reader",
+    "roles/storage.objectViewer",
+    "roles/cloudsql.client"
+  ]
 }
 
 variable "cpu_pool_machine_type" {
-  description = "Machine type for the CPU node pool"
+  description = "Machine type for CPU node pool"
   type        = string
   default     = "e2-micro"
 }
 
 variable "cpu_pool_disk_size" {
-  description = "Disk size (in GB) for the CPU node pool"
+  description = "Disk size (GB) for CPU node pool"
   type        = number
-  default     = 15
+  default     = 10
+}
+
+variable "cpu_node_count" {
+  description = "Initial node count for CPU pool"
+  type        = number
+  default     = 2
+}
+
+variable "cpu_node_autoscaling_min" {
+  description = "Autoscaling min for CPU pool"
+  type        = number
+  default     = 1
+}
+
+variable "cpu_node_autoscaling_max" {
+  description = "Autoscaling max for CPU pool"
+  type        = number
+  default     = 3
+}
+
+variable "node_zones" {
+  description = "List of zones for node pool placement"
+  type        = list(string)
+  default     = []
 }
 
 variable "enable_gpu_pool" {
-  description = "Bật/tắt GPU node pool"
+  description = "Enable GPU node pool"
   type        = bool
   default     = false
 }
 
-variable "node_zones" {
+variable "gpu_node_count" {
+  description = "Node count for GPU pool"
+  type        = number
+  default     = 1
+}
+
+variable "gpu_machine_type" {
+  description = "Machine type for GPU nodes"
+  type        = string
+  default     = "n1-standard-1"
+}
+
+variable "gpu_disk_size" {
+  description = "Disk size for GPU nodes"
+  type        = number
+  default     = 15
+}
+
+variable "gpu_type" {
+  description = "GPU type"
+  type        = string
+  default     = "nvidia-tesla-t4"
+}
+
+variable "gpu_count" {
+  description = "Number of GPUs per GPU node"
+  type        = number
+  default     = 1
+}
+
+variable "gpu_node_zones" {
+  description = "Zones for GPU node pool"
   type        = list(string)
-  description = "Danh sách zone triển khai node pool"
-  default     = ["asia-southeast1-a", "asia-southeast1-b", "asia-southeast1-c"]
+  default     = ["asia-southeast1-a"]
 }
