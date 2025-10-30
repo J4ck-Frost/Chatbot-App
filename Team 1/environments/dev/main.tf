@@ -1,15 +1,20 @@
+# Bootstrap module - Sets up initial GCP project configuration and enables required APIs
 module "bootstrap" {
   source     = "../../modules/bootstrap"
   project_id = var.project_id
 }
 
+# VPC module - Creates Virtual Private Cloud network infrastructure
+# Includes VPC network and subnet configuration for resource isolation
 module "vpc" {
   source     = "../../modules/vpc"
   project_id = var.project_id
-  region     = var.region
-  zone       = var.zone
+  vpc_name   = var.vpc_name
+  subnets    = var.subnets_list
 }
 
+# Artifact Registry module - Sets up container registry
+# Used for storing and managing container images
 module "artifact_registry" {
   source        = "../../modules/artifact_registry"
   project_id    = var.project_id
@@ -17,6 +22,8 @@ module "artifact_registry" {
   repository_id = var.repository_id
 }
 
+# Cloud Storage module - Creates GCS bucket for application storage
+# Used for storing application files, assets, or backups
 module "app_bucket" {
   source                      = "../../modules/storage"
   bucket_name                 = "${var.project_name}-app-bucket-dev"
@@ -40,6 +47,8 @@ module "app_bucket" {
   ]
 }
 
+# Cloud SQL module - Sets up PostgreSQL database instance
+# Provides managed relational database service
 module "sql" {
   source         = "../../modules/sql"
   project_id     = var.project_id
@@ -82,6 +91,8 @@ output "sql_database_user" {
   value       = module.sql.database_user
 }
 
+# GKE (Google Kubernetes Engine) module - Creates managed Kubernetes cluster
+# Used for container orchestration and application deployment
 module "gke" {
   source          = "../../modules/gke"
   project_id      = var.project_id

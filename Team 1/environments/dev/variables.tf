@@ -81,13 +81,19 @@ variable "cluster_name" {
   description = "GKE cluster name"
   type        = string
   default     = "gke-cluster-dev"
-
 }
 
-
 variable "vpc_name" {
-  description = "VPC name"
+  description = "Name of the VPC network"
   type        = string
-  default     = "team1-vpc-dev"
+  default     = "dev-vpc"
+}
 
+variable "subnets_list" {
+  description = "List of subnet configurations"
+  type = list(object({
+    name          = string
+    ip_cidr_range = string
+    region        = string
+  }))
 }

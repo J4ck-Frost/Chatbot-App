@@ -1,21 +1,18 @@
 variable "project_id" {
-  description = "GCP Project ID"
+  description = "The project ID to deploy to"
   type        = string
 }
 
-variable "region" {
-  description = "Region để tạo VPC"
-  type        = string
-}
-
-variable "zone" {
-  description = "Zone để tạo VM"
-  type        = string
-  default     = "asia-southeast1-a"
-}
 variable "vpc_name" {
-  description = "VPC name"
+  description = "The name of the VPC network"
   type        = string
-  default     = "team1-vpc-dev"
-  
+}
+
+variable "subnets" {
+  description = "List of subnet configurations"
+  type = list(object({
+    name          = string
+    ip_cidr_range = string
+    region        = string
+  }))
 }
