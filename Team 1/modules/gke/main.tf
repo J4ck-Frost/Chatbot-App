@@ -1,8 +1,8 @@
-# GKE Cluster (regional, multi-zonal)
+# GKE Cluster 
 
 resource "google_container_cluster" "gke_cluster" {
   name                     = var.cluster_name
-  location                 = var.region                      
+  location                 = var.node_zones[0]                      
   remove_default_node_pool = true
   deletion_protection      = false
   initial_node_count       = 1
@@ -48,9 +48,8 @@ resource "google_project_iam_member" "node_sa_roles" {
 resource "google_container_node_pool" "cpu_pool" {
   name     = "cpu-pool"
   cluster  = google_container_cluster.gke_cluster.name
-  location = var.region
-
   node_count = var.cpu_node_count
+  node_locations = var.node_zones
 
   node_config {
     machine_type    = var.cpu_pool_machine_type
@@ -82,8 +81,6 @@ resource "google_container_node_pool" "cpu_pool" {
     auto_repair  = true
     auto_upgrade = true
   }
-
-  node_locations = var.node_zones
 }
 
 # Optional GPU node pool (kept commented in original; enable via var.enable_gpu_pool)

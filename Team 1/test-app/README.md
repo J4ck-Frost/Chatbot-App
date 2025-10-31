@@ -5,13 +5,15 @@ This is a simple Node.js application to test the PostgreSQL database connection.
 ## What's Created
 
 ### 🗄️ **PostgreSQL Database Infrastructure**
-- **Instance**: `dev-postgres` 
+
+- **Instance**: `dev-postgres`
 - **Database**: `postgres-db`
 - **Private IP**: `10.106.0.5`
 - **Port**: `5432`
 - **Network**: Direct VPC connection (no public IP)
 
 ### 🚀 **Test Application**
+
 - **Node.js/Express** web server
 - **pg** PostgreSQL client library
 - **Docker** containerized application
@@ -26,6 +28,7 @@ This is a simple Node.js application to test the PostgreSQL database connection.
 ## Database Connection Details
 
 The application connects to PostgreSQL using:
+
 ```javascript
 {
   host: '10.106.0.5',        // Private IP - no internet access
@@ -48,13 +51,18 @@ The application connects to PostgreSQL using:
 ## How to Deploy
 
 ### Option 1: GKE Cluster (Recommended)
+
 ```bash
 # 1. Ensure GKE cluster is ready
-gcloud container clusters get-credentials gke-cluster-dev --zone=asia-southeast1-a
+gcloud container clusters get-credentials <your-cluster-name> --zone=<your-control-plane-zone>
+# VD gcloud container clusters get-credentials gke-cluster-dev
 
-# 2. Build and push image
-docker build -t asia-southeast1-docker.pkg.dev/devopts-k2-advance/team1-ai-repo/postgres-test-app:latest .
-docker push asia-southeast1-docker.pkg.dev/devopts-k2-advance/team1-ai-repo/postgres-test-app:latest
+# 2. Build and push image (run in folder contains Dockerfile)
+docker build -t <your-registry-endpoint>/<your-image-name>:<your-tag> .
+# VD: docker build -t asia-southeast1-docker.pkg.dev/devopts-k2-advance/team1-ai-repo/postgres-test-app:latest .
+
+docker push <your-registry-endpoint>/<your-image-name>:<your-tag>
+# VD: docker push asia-southeast1-docker.pkg.dev/devopts-k2-advance/team1-ai-repo/postgres-test-app:latest
 
 # 3. Deploy to Kubernetes
 kubectl apply -f k8s-deployment.yaml
@@ -64,6 +72,7 @@ kubectl get service postgres-test-app-service
 ```
 
 ### Option 2: Local Testing
+
 ```bash
 # Run locally (requires Node.js)
 npm install
@@ -79,6 +88,7 @@ curl http://localhost:3000/test-query
 Once deployed, test these endpoints:
 
 - **Health Check**: `http://[EXTERNAL-IP]/health`
+
   - Tests basic database connectivity
   - Returns current timestamp from database
 
@@ -94,7 +104,7 @@ Once deployed, test these endpoints:
 ✅ **Artifact Registry**: Container image repository  
 ✅ **Storage Bucket**: Application storage  
 ✅ **GKE Cluster**: `gke-cluster-dev` (provisioning)  
-✅ **Service Accounts**: Database access permissions  
+✅ **Service Accounts**: Database access permissions
 
 ## Connection Architecture
 
@@ -103,8 +113,9 @@ GKE Pod → Private Network (10.x.x.x) → Cloud SQL Private IP (10.106.0.5:5432
 ```
 
 **Benefits:**
+
 - **Fastest**: Direct connection, no proxy
-- **Securest**: No public IP, private network only  
+- **Securest**: No public IP, private network only
 - **Simplest**: No complex networking setup
 - **Cost-effective**: No additional network charges
 
