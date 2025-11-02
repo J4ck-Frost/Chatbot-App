@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: postgres-test-app
-          image: us-central1-docker.pkg.dev/logical-iridium-474603-b4/app-repo/test-app:v1
+          image: asia-southeast1-docker.pkg.dev/devopts-k2-advance/app-repo/test-app:v1
           imagePullPolicy: Always
           ports:
             - containerPort: 3000
@@ -24,34 +24,27 @@ spec:
             - name: PORT
               value: "3000"
             - name: DB_HOST
-              value: "127.0.0.1" # tạm thời dùng localhost nếu chưa có Cloud SQL
+              value: "10.144.0.3" # Cloud SQL private IP
             - name: DB_PORT
               value: "5432"
             - name: DB_NAME
-              value: "num1-database"
+              value: "postgres-db"
             - name: DB_USER
-              value: "num1-user"
+              value: "postgres"
             - name: DB_PASSWORD
-              value: "Abc@12345678"
+              value: "abcxyz"
           readinessProbe:
             httpGet:
               path: /health
               port: 3000
-            initialDelaySeconds: 5
-            periodSeconds: 5
+            initialDelaySeconds: 30
+            periodSeconds: 10
           livenessProbe:
             httpGet:
               path: /
               port: 3000
-            initialDelaySeconds: 10
+            initialDelaySeconds: 45
             periodSeconds: 10
-          resources:
-            requests:
-              memory: "32Mi"
-              cpu: "25m"
-            limits:
-              memory: "64Mi"
-              cpu: "50m"
 
 ---
 apiVersion: v1

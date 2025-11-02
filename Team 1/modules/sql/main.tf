@@ -1,3 +1,28 @@
+# Reserve an IP range for private service networking
+resource "google_compute_global_address" "private_ip_address" {
+  name          = "${var.instance_name}-private-ip"
+  purpose       = "VPC_PEERING"
+  address_type  = "INTERNAL"
+  prefix_length = 16
+  network       = var.vpc_network_id
+  project       = var.project_id
+}
+
+# Enable servicenetworking API
+resource "google_project_service" "servicenetworking" {
+  project = var.project_id
+  service = "servicenetworking.googleapis.com"
+}
+
+# Create a private VPC connection for Cloud SQL
+resource "google_service_networking_connection" "private_vpc_connection" {
+  network                 = var.vpc_network_id
+  service                 = "servicenetworking.googleapis.com"
+  reserved_peering_ranges = [google_compute_global_address.private_ip_address.name]
+
+  depends_on = [google_project_service.servicenetworking]
+}
+
 # Create Cloud SQL instance
 resource "google_sql_database_instance" "instance" {
   name             = var.instance_name
@@ -18,6 +43,8 @@ resource "google_sql_database_instance" "instance" {
   }
 
   deletion_protection = false  # Set to true in production
+  
+  depends_on = [google_service_networking_connection.private_vpc_connection]
 }
 
 # Create database

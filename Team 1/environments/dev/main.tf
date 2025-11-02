@@ -79,26 +79,26 @@ module "artifact_registry" {
 #   }
 # }
 
-# # Cloud SQL module - Sets up PostgreSQL database instance
-# # Provides managed relational database service (using Private IP as chosen)
-# module "sql" {
-#   source         = "../../modules/sql"
+# Cloud SQL module - Sets up PostgreSQL database instance
+# Provides managed relational database service (using Private IP as chosen)
+module "sql" {
+  source         = "../../modules/sql"
 
-#   # required inputs
-#   project_id     = var.project_id
-#   instance_name  = var.instance_name
-#   region         = var.region
+  # required inputs
+  project_id     = var.project_id
+  instance_name  = var.instance_name
+  region         = var.region
 
-#   # database details
-#   db_name        = var.db_name
-#   db_user        = var.db_user
-#   db_password    = var.db_password
+  # database details
+  db_name        = var.db_name
+  db_user        = var.db_user
+  db_password    = var.db_password
 
-#   # IMPORTANT: module expects variable vpc_network_id (self_link of VPC)
-#   vpc_network_id = module.vpc.vpc_self_link
+  # IMPORTANT: module expects variable vpc_network_id (self_link of VPC)
+  vpc_network_id = module.vpc.vpc_self_link
 
-#   # Kubernetes namespace where pods will run (for Workload Identity bindings if used)
-#   k8s_namespace  = "default"  # or your application namespace
-# }
+  # Kubernetes namespace where pods will run (for Workload Identity bindings if used)
+  k8s_namespace  = "default"  # or your application namespace
+}
 
 # # End of environment configuration

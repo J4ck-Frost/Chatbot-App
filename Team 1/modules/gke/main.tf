@@ -48,6 +48,7 @@ resource "google_project_iam_member" "node_sa_roles" {
 resource "google_container_node_pool" "cpu_pool" {
   name     = "cpu-pool"
   cluster  = google_container_cluster.gke_cluster.name
+  location = google_container_cluster.gke_cluster.location
   node_count = var.cpu_node_count
   node_locations = var.node_zones
 
