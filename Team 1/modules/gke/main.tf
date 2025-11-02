@@ -84,51 +84,56 @@ resource "google_container_node_pool" "cpu_pool" {
   }
 }
 
-# Optional GPU node pool (kept commented in original; enable via var.enable_gpu_pool)
-# resource "google_container_node_pool" "gpu_pool" {
-#   count    = var.enable_gpu_pool ? 1 : 0
-#   name     = "pool-gpu"
-#   cluster  = google_container_cluster.gke_cluster.name
-#   location = var.region
-#   node_count = var.gpu_node_count
+# GPU node pool for AI/ML workloads
+resource "google_container_node_pool" "gpu_pool" {
+  count    = var.enable_gpu_pool ? 1 : 0
+  name     = "gpu-pool"
+  cluster  = google_container_cluster.gke_cluster.name
+  location = google_container_cluster.gke_cluster.location
+  node_count = var.gpu_node_count
 
-#   node_config {
-#     machine_type = var.gpu_machine_type
-#     disk_size_gb = var.gpu_disk_size
-#     image_type   = "COS_CONTAINERD"
+  node_config {
+    machine_type = var.gpu_machine_type
+    disk_size_gb = var.gpu_disk_size
+    image_type   = "COS_CONTAINERD"
 
-#     guest_accelerator {
-#       type  = var.gpu_type
-#       count = var.gpu_count
-#     }
+    guest_accelerator {
+      type  = var.gpu_type
+      count = var.gpu_count
+    }
 
-#     oauth_scopes = [
-#       "https://www.googleapis.com/auth/cloud-platform"
-#     ]
+    oauth_scopes = [
+      "https://www.googleapis.com/auth/cloud-platform"
+    ]
 
-#     labels = {
-#       pool_type = "gpu"
-#     }
+    labels = {
+      pool_type = "gpu"
+    }
 
-#     tags = ["gpu-node"]
+    tags = ["gpu-node"]
 
-#     metadata = {
-#       disable-legacy-endpoints = "true"
-#     }
+    metadata = {
+      disable-legacy-endpoints = "true"
+    }
 
-#     service_account = local.node_sa_email != "" ? local.node_sa_email : var.service_account
-#   }
+    service_account = local.node_sa_email != "" ? local.node_sa_email : var.service_account
+  }
 
-#   management {
-#     auto_repair  = true
-#     auto_upgrade = true
-#   }
+  autoscaling {
+    min_node_count = 0
+    max_node_count = 2
+  }
 
-#   node_locations = var.gpu_node_zones
+  management {
+    auto_repair  = true
+    auto_upgrade = true
+  }
 
-#   lifecycle {
-#     ignore_changes = [
-#       node_config[0].guest_accelerator
-#     ]
-#   }
-# }
+  node_locations = var.gpu_node_zones
+
+  lifecycle {
+    ignore_changes = [
+      node_config[0].guest_accelerator
+    ]
+  }
+}
