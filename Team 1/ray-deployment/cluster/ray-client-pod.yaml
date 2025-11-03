@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ray-client
+  namespace: default
+  labels:
+    app: ray-client
+spec:
+  serviceAccountName: ray-client-sa
+  containers:
+  - name: ray-client
+    image: rayproject/ray:2.8.0
+    command: ["sleep"]
+    args: ["infinity"]
+    resources:
+      limits:
+        cpu: "500m"
+        memory: "1Gi"
+      requests:
+        cpu: "200m"
+        memory: "512Mi"
+    env:
+    - name: RAY_ADDRESS
+      value: "ray://ray-gpu-head-svc:10001"
+    - name: RAY_DISABLE_IMPORT_WARNING
+      value: "1"
+    volumeMounts:
+    - name: ray-client-storage
+      mountPath: /workspace
+  volumes:
+  - name: ray-client-storage
+    emptyDir: {}
+  restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ray-client-svc
+  namespace: default
+spec:
+  ports:
+  - name: jupyter
+    port: 8888
+    targetPort: 8888
+  selector:
+    app: ray-client
+  type: ClusterIP

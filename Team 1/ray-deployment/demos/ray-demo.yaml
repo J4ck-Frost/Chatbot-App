@@ -1,0 +1,46 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ray-demo
+  namespace: default
+  labels:
+    app: ray-demo
+spec:
+  template:
+    metadata:
+      labels:
+        app: ray-demo
+    spec:
+      serviceAccountName: ray-client-sa
+      tolerations:
+      - key: "nvidia.com/gpu"
+        operator: "Equal"
+        value: "present"
+        effect: "NoSchedule"
+      containers:
+      - name: ray-demo
+        image: rayproject/ray:2.8.0
+        command: ["python", "/scripts/ray-demo.py"]
+        resources:
+          limits:
+            cpu: "500m"
+            memory: "1Gi"
+          requests:
+            cpu: "200m"
+            memory: "512Mi"
+        env:
+        - name: RAY_DISABLE_IMPORT_WARNING
+          value: "1"
+        - name: RAY_ENABLE_WINDOWS_OR_OSX_CLUSTER
+          value: "1"
+        volumeMounts:
+        - name: demo-script
+          mountPath: /scripts
+          readOnly: true
+      volumes:
+      - name: demo-script
+        configMap:
+          name: ray-demo-script
+          defaultMode: 0755
+      restartPolicy: Never
+  backoffLimit: 2

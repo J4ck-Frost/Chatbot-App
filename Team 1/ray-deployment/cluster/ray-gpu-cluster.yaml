@@ -20,6 +20,7 @@ spec:
     rayStartParams:
       dashboard-host: '0.0.0.0'
       metrics-export-port: '8080'
+      ray-client-server-port: '10001'
     template:
       spec:
         containers:
@@ -46,6 +47,11 @@ spec:
           env:
           - name: RAY_DISABLE_IMPORT_WARNING
             value: "1"
+          - name: RAY_DASHBOARD_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: ray-dashboard-secret
+                key: password
         nodeSelector:
           cloud.google.com/gke-accelerator: nvidia-tesla-p4
         tolerations:
@@ -76,4 +82,4 @@ spec:
   selector:
     ray.io/cluster: ray-gpu-cluster
     ray.io/node-type: head
-  type: LoadBalancer
+  type: ClusterIP
