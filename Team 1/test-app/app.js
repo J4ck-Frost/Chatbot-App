@@ -105,6 +105,33 @@ app.post("/api/upload", upload.single("file"), async (req, res) => {
   });
 });
 
+// === MOCK CHAT API ===
+app.post("/api/chat", async (req, res) => {
+  const { message, history } = req.body;
+
+  if (!message) {
+    return res.status(400).json({ error: "Message is required" });
+  }
+
+  // Mock: sinh câu trả lời giả lập dựa theo message
+  const replies = [
+    `Tôi hiểu bạn nói "${message}". Rất hay!`,
+    `Câu hỏi thú vị: "${message}". Khi model thật hoạt động, tôi sẽ trả lời chi tiết hơn.`,
+    `Giả lập phản hồi: "${message}" (từ mock chat bot).`,
+    `Xin lỗi, hiện tôi đang chạy ở chế độ mock. Bạn vừa nói "${message}".`,
+  ];
+  const randomReply = replies[Math.floor(Math.random() * replies.length)];
+
+  // Trả về "phản hồi" + thêm metadata
+  res.json({
+    role: "assistant",
+    content: randomReply,
+    timestamp: new Date().toISOString(),
+    mock: true,
+    model: "phi3-mini (mock)",
+  });
+});
+
 // Serve UI
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));

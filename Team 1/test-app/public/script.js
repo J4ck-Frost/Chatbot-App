@@ -71,3 +71,44 @@ uploadBtn.onclick = async () => {
   const data = await res.json();
   uploadResult.textContent = JSON.stringify(data, null, 2);
 };
+
+// === Chat mock ===
+const chatMessages = document.getElementById("chat-messages");
+const chatText = document.getElementById("chatText");
+const sendBtn = document.getElementById("sendBtn");
+let chatHistory = [];
+
+function appendMessage(role, text) {
+  const msg = document.createElement("div");
+  msg.className = `message ${role}`;
+  msg.innerHTML = `<span>${text}</span>`;
+  chatMessages.appendChild(msg);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+async function sendMessage() {
+  const text = chatText.value.trim();
+  if (!text) return;
+
+  appendMessage("user", text);
+  chatText.value = "";
+
+  // Mock call to backend
+  const res = await fetch("/api/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message: text, history: chatHistory }),
+  });
+
+  const reply = await res.json();
+  appendMessage("assistant", reply.content);
+
+  // Update history
+  chatHistory.push({ role: "user", content: text });
+  chatHistory.push({ role: "assistant", content: reply.content });
+}
+
+sendBtn.onclick = sendMessage;
+chatText.addEventListener("keypress", (e) => {
+  if (e.key === "Enter") sendMessage();
+});
