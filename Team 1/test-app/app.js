@@ -105,7 +105,7 @@ app.post("/api/upload", upload.single("file"), async (req, res) => {
   });
 });
 
-// === MOCK CHAT API ===
+// === RAY PHI3-MINI CHAT API ===
 app.post("/api/chat", async (req, res) => {
   const { message, history } = req.body;
 
@@ -113,23 +113,65 @@ app.post("/api/chat", async (req, res) => {
     return res.status(400).json({ error: "Message is required" });
   }
 
-  // Mock: sinh câu trả lời giả lập dựa theo message
-  const replies = [
-    `Tôi hiểu bạn nói "${message}". Rất hay!`,
-    `Câu hỏi thú vị: "${message}". Khi model thật hoạt động, tôi sẽ trả lời chi tiết hơn.`,
-    `Giả lập phản hồi: "${message}" (từ mock chat bot).`,
-    `Xin lỗi, hiện tôi đang chạy ở chế độ mock. Bạn vừa nói "${message}".`,
-  ];
-  const randomReply = replies[Math.floor(Math.random() * replies.length)];
+  try {
+    // Call Ray-powered Phi3-mini API
+    const rayApiUrl = process.env.RAY_API_URL || 'http://ray-ai-model-service/chat';
+    
+    const chatRequest = {
+      message: message,
+      history: history || [],
+      max_length: 512
+    };
 
-  // Trả về "phản hồi" + thêm metadata
-  res.json({
-    role: "assistant",
-    content: randomReply,
-    timestamp: new Date().toISOString(),
-    mock: true,
-    model: "phi3-mini (mock)",
-  });
+    console.log(`Sending chat request to Ray Phi3-mini: ${message}`);
+
+    const response = await fetch(rayApiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(chatRequest)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Ray API error: ${response.status}`);
+    }
+
+    const chatResponse = await response.json();
+    
+    console.log(`Phi3-mini response received in ${chatResponse.processing_time}s`);
+
+    // Return response in format expected by frontend
+    res.json({
+      role: "assistant",
+      content: chatResponse.content,
+      timestamp: chatResponse.timestamp,
+      model: "phi3-mini-ray",
+      processing_time: chatResponse.processing_time,
+      worker_info: chatResponse.worker_info
+    });
+
+  } catch (error) {
+    console.error(`Chat API error: ${error.message}`);
+    
+    // Fallback to mock response if Ray API fails
+    const mockReplies = [
+      `I apologize, but I'm currently unable to connect to the Ray cluster. Your message was: "${message}"`,
+      `Ray Phi3-mini is temporarily unavailable. Mock response for: "${message}"`,
+      `Connection to distributed AI failed. Fallback response to: "${message}"`
+    ];
+    
+    const mockReply = mockReplies[Math.floor(Math.random() * mockReplies.length)];
+    
+    res.json({
+      role: "assistant",
+      content: mockReply,
+      timestamp: new Date().toISOString(),
+      mock: true,
+      model: "fallback-mock",
+      error: "Ray API unavailable"
+    });
+  }
 });
 
 // Serve UI
