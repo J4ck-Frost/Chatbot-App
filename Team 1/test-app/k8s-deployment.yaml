@@ -14,9 +14,10 @@ spec:
       labels:
         app: postgres-test-app
     spec:
+      serviceAccountName: instance-dev-app-ksa
       containers:
         - name: postgres-test-app
-          image: asia-southeast1-docker.pkg.dev/devopts-k2-advance/app-repo/test-app:v1
+          image: asia-southeast1-docker.pkg.dev/striking-figure-474817-a3/team1-ai-repo/postgres-test-app:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 3000
@@ -24,21 +25,23 @@ spec:
             - name: PORT
               value: "3000"
             - name: DB_HOST
-              value: "10.144.0.3" # Cloud SQL private IP
+              value: "10.162.0.3" # Cloud SQL private IP
             - name: DB_PORT
               value: "5432"
             - name: DB_NAME
-              value: "postgres-db"
+              value: "num1-database"
             - name: DB_USER
-              value: "postgres"
+              value: "num1-user"
             - name: DB_PASSWORD
-              value: "abcxyz"
-          readinessProbe:
-            httpGet:
-              path: /health
-              port: 3000
-            initialDelaySeconds: 30
-            periodSeconds: 10
+              value: "Abc@12345678"
+            - name: GCS_BUCKET_NAME
+              value: "app-bucket-dev-striking-figure-474817-a3"
+          # readinessProbe:
+          #   httpGet:
+          #     path: /health
+          #     port: 3000
+          #   initialDelaySeconds: 30
+          #   periodSeconds: 10
           livenessProbe:
             httpGet:
               path: /

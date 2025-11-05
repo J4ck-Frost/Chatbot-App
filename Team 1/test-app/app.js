@@ -3,6 +3,10 @@ const express = require("express");
 const path = require("path");
 const multer = require("multer");
 const { Pool } = require("pg");
+const { Storage } = require("@google-cloud/storage");
+const storage = new Storage();
+const bucketName = process.env.GCS_BUCKET_NAME;
+const bucket = storage.bucket(bucketName);
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -82,27 +86,45 @@ app.delete("/api/todos/:id", async (req, res) => {
   res.json({ success: true });
 });
 
-// === MOCK UPLOAD API ===
+// Upload to bucket
 app.post("/api/upload", upload.single("file"), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: "No file uploaded" });
 
-  // giả lập upload thành công lên GCP bucket
-  const mockUrl = `https://storage.googleapis.com/mock-bucket/${Date.now()}-${
-    req.file.originalname
-  }`;
+  try {
+    const filename = `${Date.now()}-${req.file.originalname}`;
+    const blob = bucket.file(filename);
 
-  console.log(`Mock upload: ${req.file.originalname} -> ${mockUrl}`);
+    const blobStream = blob.createWriteStream({
+      resumable: false,
+      contentType: req.file.mimetype,
+    });
 
-  // trả kết quả giả định
-  res.json({
-    status: "mocked",
-    file: {
-      name: req.file.originalname,
-      size: req.file.size,
-      type: req.file.mimetype,
-      url: mockUrl,
-    },
-  });
+    blobStream.on("error", (err) => {
+      console.error("Upload error:", err);
+      res.status(500).json({ error: "Upload failed" });
+    });
+
+    blobStream.on("finish", async () => {
+      await blob.makePublic(); // hoặc bỏ dòng này nếu không muốn public
+      const publicUrl = `https://storage.googleapis.com/${bucket.name}/${filename}`;
+      console.log(`Uploaded: ${req.file.originalname} -> ${publicUrl}`);
+
+      res.status(200).json({
+        status: "uploaded",
+        file: {
+          name: req.file.originalname,
+          size: req.file.size,
+          type: req.file.mimetype,
+          url: publicUrl,
+        },
+      });
+    });
+
+    blobStream.end(req.file.buffer);
+  } catch (err) {
+    console.error("Unexpected error:", err);
+    res.status(500).json({ error: "Unexpected upload error" });
+  }
 });
 
 // === RAY PHI3-MINI CHAT API ===
