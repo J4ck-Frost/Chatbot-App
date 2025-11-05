@@ -87,28 +87,28 @@ app.delete("/api/todos/:id", async (req, res) => {
 });
 
 // Upload to bucket
-app.post("/api/upload", upload.single("file"), async (req, res) => {
+app.post("/api/upload", upload.single("file"), (req, res) => {
   if (!req.file) return res.status(400).json({ error: "No file uploaded" });
 
-  try {
-    const filename = `${Date.now()}-${req.file.originalname}`;
-    const blob = bucket.file(filename);
+  const filename = `${Date.now()}-${req.file.originalname}`;
+  const blob = bucket.file(filename);
 
-    const blobStream = blob.createWriteStream({
-      resumable: false,
-      contentType: req.file.mimetype,
-    });
+  const blobStream = blob.createWriteStream({
+    resumable: false,
+    contentType: req.file.mimetype,
+  });
 
-    blobStream.on("error", (err) => {
-      console.error("Upload error:", err);
+  blobStream.on("error", (err) => {
+    console.error("Upload error:", err);
+    if (!res.headersSent) {
       res.status(500).json({ error: "Upload failed" });
-    });
+    }
+  });
 
-    blobStream.on("finish", async () => {
-      await blob.makePublic(); // hoặc bỏ dòng này nếu không muốn public
+  blobStream.on("finish", async () => {
+    try {
       const publicUrl = `https://storage.googleapis.com/${bucket.name}/${filename}`;
       console.log(`Uploaded: ${req.file.originalname} -> ${publicUrl}`);
-
       res.status(200).json({
         status: "uploaded",
         file: {
@@ -118,13 +118,15 @@ app.post("/api/upload", upload.single("file"), async (req, res) => {
           url: publicUrl,
         },
       });
-    });
+    } catch (err) {
+      console.error("Make public error:", err);
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Upload succeeded but makePublic failed" });
+      }
+    }
+  });
 
-    blobStream.end(req.file.buffer);
-  } catch (err) {
-    console.error("Unexpected error:", err);
-    res.status(500).json({ error: "Unexpected upload error" });
-  }
+  blobStream.end(req.file.buffer);
 });
 
 // === RAY PHI3-MINI CHAT API ===
