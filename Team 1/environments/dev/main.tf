@@ -60,24 +60,24 @@ module "artifact_registry" {
   gke_service_account = module.gke.node_service_account_email
 }
 
-# # Cloud Storage module - Creates GCS bucket for application storage
-# # Used for storing application files, assets, or backups
-# module "app_bucket" {
-#   source              = "../../modules/storage"
-#   bucket_name         = "${var.project_name}-app-bucket-dev"
-#   project_id          = var.project_id
-#   location            = var.region
-#   storage_class       = "STANDARD"
-#   versioning_enabled  = true
+# Cloud Storage module - Creates GCS bucket for application storage
+# Used for storing application files, assets, or backups
+module "app_bucket" {
+  source              = "../../modules/storage"
+  bucket_name         = "${var.bucket_name}-${var.project_id}"
+  project_id          = var.project_id
+  location            = var.region
+  storage_class       = "STANDARD"
+  versioning_enabled  = true
 
-#   # Allow GKE node/service account to access bucket
-#   gke_service_account = module.gke.node_service_account_email
+  # Allow GKE node/service account to access bucket
+  gke_service_account = module.gke.node_service_account_email
 
-#   labels = {
-#     env  = "dev"
-#     team = "team-1"
-#   }
-# }
+  labels = {
+    env  = "dev"
+    team = "team-1"
+  }
+}
 
 # Cloud SQL module - Sets up PostgreSQL database instance
 # Provides managed relational database service (using Private IP as chosen)

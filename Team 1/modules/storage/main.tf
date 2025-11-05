@@ -44,6 +44,6 @@ resource "google_storage_bucket_iam_binding" "bindings" {
 # Specific IAM binding for GKE service account
 resource "google_storage_bucket_iam_member" "gke_storage_access" {
   bucket = google_storage_bucket.this.name
-  role   = "roles/storage.objectViewer"
+  role   = "roles/storage.objectAdmin"
   member = "serviceAccount:${var.gke_service_account}"
 }
