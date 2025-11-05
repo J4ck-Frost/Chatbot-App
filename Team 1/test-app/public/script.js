@@ -70,6 +70,7 @@ uploadBtn.onclick = async () => {
 
   const data = await res.json();
   uploadResult.textContent = JSON.stringify(data, null, 2);
+  fileInput.value = ""; 
 };
 
 // === Chat mock ===
