@@ -21,7 +21,7 @@ spec:
         memory: "512Mi"
     env:
     - name: RAY_ADDRESS
-      value: "ray://ray-gpu-head-svc:10001"
+      value: "ray://ray-cluster-head-svc:10001"
     - name: RAY_DISABLE_IMPORT_WARNING
       value: "1"
     volumeMounts:

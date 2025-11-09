@@ -16,6 +16,13 @@ spec:
       labels:
         app: phi3-worker-model
     spec:
+      tolerations:
+      - key: "cloud.google.com/gke-preemptible"
+        operator: "Equal" 
+        value: "true"
+        effect: "NoSchedule"
+      nodeSelector:
+        cloud.google.com/gke-nodepool: cpu-pool
       containers:
       - name: phi3-model
         image: rayproject/ray:2.8.0
@@ -33,16 +40,16 @@ spec:
           mountPath: /scripts
         env:
         - name: RAY_ADDRESS
-          value: "ray://ray-head-svc:10001"
+          value: "ray://ray-cluster-head-svc:10001"
         - name: PYTHONUNBUFFERED
           value: "1"
         resources:
           requests:
-            cpu: "200m"
-            memory: "512Mi"
+            cpu: "50m"
+            memory: "128Mi"
           limits:
-            cpu: "500m"
-            memory: "1Gi"
+            cpu: "200m"
+            memory: "256Mi"
         readinessProbe:
           httpGet:
             path: /health

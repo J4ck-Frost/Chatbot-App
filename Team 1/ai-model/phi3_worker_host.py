@@ -40,7 +40,7 @@ class StatusResponse(BaseModel):
 
 # Connect to Ray cluster
 try:
-    ray.init(address='ray://ray-head-svc:10001', ignore_reinit_error=True)
+    ray.init(address='ray://ray-cluster-head-svc:10001', ignore_reinit_error=True)
     logger.info("Connected to Ray cluster!")
     logger.info(f"Cluster resources: {ray.cluster_resources()}")
 except Exception as e:
@@ -48,7 +48,7 @@ except Exception as e:
     exit(1)
 
 # Ray remote class for Phi3-mini hosted directly on worker
-@ray.remote(num_gpus=0.7, num_cpus=1.5)  # Use most of the worker's GPU resources
+@ray.remote(num_gpus=1.0, num_cpus=1.5)  # Use the full GPU worker resource
 class Phi3MiniWorkerModel:
     def __init__(self):
         """Initialize Phi3-mini model directly on Ray worker"""
@@ -59,16 +59,22 @@ class Phi3MiniWorkerModel:
         import sys
         
         try:
+            # Add user site-packages to path for Ray workers
+            import site
+            user_site_packages = site.getusersitepackages()
+            if user_site_packages not in sys.path:
+                sys.path.insert(0, user_site_packages)
+            
             logger.info("Installing PyTorch with CUDA support...")
             subprocess.check_call([
-                sys.executable, "-m", "pip", "install", "--user", "--no-cache-dir",
+                sys.executable, "-m", "pip", "install", "--no-cache-dir",
                 "torch", "torchvision", "torchaudio", 
                 "--index-url", "https://download.pytorch.org/whl/cu121"
             ])
             
             logger.info("Installing transformers and dependencies...")
             subprocess.check_call([
-                sys.executable, "-m", "pip", "install", "--user", "--no-cache-dir",
+                sys.executable, "-m", "pip", "install", "--no-cache-dir",
                 "transformers", "accelerate", "sentencepiece", "bitsandbytes"
             ])
             logger.info("Package installation completed!")
@@ -183,7 +189,7 @@ class Phi3MiniWorkerModel:
 
 # Connect to Ray cluster
 try:
-    ray.init(address='ray://ray-head-svc:10001', ignore_reinit_error=True)
+    ray.init(address='ray://ray-cluster-head-svc:10001', ignore_reinit_error=True)
     logger.info("Connected to Ray cluster!")
     logger.info(f"Cluster resources: {ray.cluster_resources()}")
 except Exception as e:
