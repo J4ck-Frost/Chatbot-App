@@ -1,0 +1,69 @@
+---
+- name: Ray AI Model Deployment Pipeline
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - group_vars/all.yml
+  
+  pre_tasks:
+    - name: Display deployment configuration
+      ansible.builtin.debug:
+        msg: |
+          🚀 Starting simplified Ray AI deployment...
+          
+          Environment: {{ environment }}
+          Namespace: {{ namespace }}
+          Ray Cluster: {{ ray_cluster_name }}
+          
+          Components to deploy:
+          ✓ Ray RBAC (ServiceAccount, Role, RoleBinding)
+          ✓ Ray Cluster (head + GPU workers)  
+          ✓ Ray Client (development pod)
+          ✓ ConfigMap (AI model Python code)
+          ✓ Ray Serve (Phi3 AI model from ray-serve folder)
+          
+          Prerequisites:
+          - kubectl is configured 
+          - Kubernetes cluster is accessible
+
+  tasks:
+    - name: Prepare Docker Environment
+      include_role:
+        name: docker
+      tags: ['docker', 'prepare']
+
+    - name: Deploy to Kubernetes
+      include_role:
+        name: k8s
+      tags: ['kubernetes', 'deploy']
+
+  post_tasks:
+    - name: Display success message
+      ansible.builtin.debug:
+        msg: |
+          🎉 Ray AI deployment completed successfully!
+          
+          Deployed components:
+          ✓ Ray RBAC (ServiceAccount, Role, RoleBinding)
+          ✓ Ray Cluster (head + workers)
+          ✓ Ray Client (development pod)
+          ✓ Ray Serve with Phi3 AI model
+          
+          Quick access commands:
+          
+          # Check Ray dashboard
+          kubectl port-forward svc/{{ ray_head_service }} {{ ray_dashboard_port }}:{{ ray_dashboard_port }} -n {{ namespace }}
+          # Open: http://localhost:{{ ray_dashboard_port }}
+          
+          # Access AI model API (via port-forward to deployment)
+          kubectl port-forward deployment/phi3-ray-serve 8000:8000 -n {{ namespace }}
+          # Test: curl -X POST http://localhost:8000/chat -H "Content-Type: application/json" -d '{"message": "Hello!"}'
+          
+          # Use Ray Client for development
+          kubectl exec -it ray-client -- python -n {{ namespace }}
+          
+          # Check all pods
+          kubectl get pods -n {{ namespace }}
+          
+          # View AI model logs
+          kubectl logs -l app=phi3-ray-serve -n {{ namespace }}

@@ -38,6 +38,8 @@ spec:
             name: client
           - containerPort: 8080
             name: metrics
+          - containerPort: 8000
+            name: serve
           resources:
             limits:
               cpu: "800m"
@@ -89,23 +91,26 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: ray-head-svc
+  name: ray-cluster-head-svc
   namespace: default
 spec:
-  ports:
-  - name: dashboard
-    port: 8265
-    protocol: TCP
-    targetPort: 8265
-  - name: client
-    port: 10001
-    protocol: TCP
-    targetPort: 10001
-  - name: gcs-server
-    port: 6379
-    protocol: TCP
-    targetPort: 6379
-  selector:
-    ray.io/cluster: ray-cluster
-    ray.io/node-type: head
   type: ClusterIP
+  selector:
+    ray.io/node-type: head
+    ray.io/cluster: ray-cluster
+  ports:
+    - name: gcs
+      port: 6379
+      targetPort: 6379
+    - name: dashboard
+      port: 8265
+      targetPort: 8265
+    - name: client
+      port: 10001
+      targetPort: 10001
+    - name: metrics
+      port: 8080
+      targetPort: 8080
+    - name: serve
+      port: 8000
+      targetPort: 8000
