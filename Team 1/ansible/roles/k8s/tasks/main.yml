@@ -115,17 +115,17 @@
     src: "{{ playbook_dir }}/../ai-model/ray-serve/phi3-ray-serve-deployment.yaml"
     namespace: "{{ namespace }}"
 
-# - name: Wait for Ray Serve deployment to be ready
-#   kubernetes.core.k8s_info:
-#     api_version: apps/v1
-#     kind: Deployment
-#     name: phi3-ray-serve
-#     namespace: "{{ namespace }}"
-#     wait: true
-#     wait_condition:
-#       type: Available
-#       status: "True"
-#     wait_timeout: "{{ wait_timeout }}"
+- name: Wait for Ray Serve deployment to be ready
+  kubernetes.core.k8s_info:
+    api_version: apps/v1
+    kind: Deployment
+    name: phi3-ray-serve
+    namespace: "{{ namespace }}"
+    wait: true
+    wait_condition:
+      type: Available
+      status: "True"
+    wait_timeout: "{{ wait_timeout }}"
 
 # Step 6: Verify deployment status
 - name: Get all pods in namespace
