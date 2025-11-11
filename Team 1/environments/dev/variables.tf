@@ -49,7 +49,7 @@ variable "service_account_email" {
 variable "create_node_service_account" {
   description = "If true, module will create a GCP service account to use for node workloads"
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "node_service_account_id" {
@@ -62,8 +62,6 @@ variable "node_service_account_roles" {
   description = "List of IAM roles to grant to the node/service account"
   type        = list(string)
   default     = [
-    "roles/artifactregistry.reader",
-    "roles/storage.objectViewer", 
     "roles/logging.logWriter",
     "roles/monitoring.metricWriter",
     "roles/stackdriver.resourceMetadata.writer"

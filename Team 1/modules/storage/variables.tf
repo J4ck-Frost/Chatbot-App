@@ -46,16 +46,3 @@ variable "labels" {
   default = {}
 }
 
-variable "iam_bindings" {
-  type = list(object({
-    role    = string
-    members = list(string)
-  }))
-  default     = []
-  description = "Bucket IAM bindings - list of { role = string, members = [\"user:..., serviceAccount:...\", ...] }"
-}
-
-variable "gke_service_account" {
-  description = "GKE service account email that needs access to the bucket"
-  type        = string
-}

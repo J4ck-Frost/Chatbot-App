@@ -32,7 +32,7 @@ variable "service_account" {
 variable "create_node_service_account" {
   description = "If true, module will create a GCP service account to use for node workloads"
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "node_service_account_id" {

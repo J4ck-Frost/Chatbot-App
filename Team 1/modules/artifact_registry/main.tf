@@ -11,7 +11,7 @@ resource "google_artifact_registry_repository" "artifact_registry" {
 resource "google_artifact_registry_repository_iam_member" "gke_pull" {
   project    = var.project_id
   location   = var.location
-  repository = google_artifact_registry_repository.artifact_registry.name
+  repository = var.repository_id
   role       = "roles/artifactregistry.reader"
   member     = "serviceAccount:${var.gke_service_account}"
 }

@@ -71,9 +71,6 @@ module "app_bucket" {
   storage_class       = "STANDARD"
   versioning_enabled  = true
 
-  # Allow GKE node/service account to access bucket
-  gke_service_account = module.gke.node_service_account_email
-
   labels = {
     env  = "dev"
     team = "team-1"

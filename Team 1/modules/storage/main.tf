@@ -32,19 +32,3 @@ resource "google_storage_bucket" "this" {
 
   labels = var.labels
 }
-
-# IAM bindings for general access
-resource "google_storage_bucket_iam_binding" "bindings" {
-  for_each = { for idx, b in var.iam_bindings : idx => b }
-
-  bucket  = google_storage_bucket.this.name
-  role    = each.value.role
-  members = lookup(each.value, "members", [])
-}
-
-# Specific IAM binding for GKE service account
-resource "google_storage_bucket_iam_member" "gke_storage_access" {
-  bucket = google_storage_bucket.this.name
-  role   = "roles/storage.objectAdmin"
-  member = "serviceAccount:${var.gke_service_account}"
-}
