@@ -36,34 +36,3 @@
       include_role:
         name: k8s
       tags: ['kubernetes', 'deploy']
-
-  post_tasks:
-    - name: Display success message
-      ansible.builtin.debug:
-        msg: |
-          🎉 Ray AI deployment completed successfully!
-          
-          Deployed components:
-          ✓ Ray RBAC (ServiceAccount, Role, RoleBinding)
-          ✓ Ray Cluster (head + workers)
-          ✓ Ray Client (development pod)
-          ✓ Ray Serve with Phi3 AI model
-          
-          Quick access commands:
-          
-          # Check Ray dashboard
-          kubectl port-forward svc/{{ ray_head_service }} {{ ray_dashboard_port }}:{{ ray_dashboard_port }} -n {{ namespace }}
-          # Open: http://localhost:{{ ray_dashboard_port }}
-          
-          # Access AI model API (via port-forward to deployment)
-          kubectl port-forward deployment/phi3-ray-serve 8000:8000 -n {{ namespace }}
-          # Test: curl -X POST http://localhost:8000/chat -H "Content-Type: application/json" -d '{"message": "Hello!"}'
-          
-          # Use Ray Client for development
-          kubectl exec -it ray-client -- python -n {{ namespace }}
-          
-          # Check all pods
-          kubectl get pods -n {{ namespace }}
-          
-          # View AI model logs
-          kubectl logs -l app=phi3-ray-serve -n {{ namespace }}

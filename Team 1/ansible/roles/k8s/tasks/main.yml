@@ -6,7 +6,8 @@
 
 - name: Set KUBECONFIG environment variable
   ansible.builtin.set_fact:
-    ansible_env: "{{ ansible_env | combine({'KUBECONFIG': kubeconfig_path}) }}"
+    ansible_env: "{{ ansible_env | default({}) | combine({'KUBECONFIG': kubeconfig_path}) }}"
+  when: kubeconfig_path is defined
 
 - name: Create Ray dashboard secret (if password needed)
   kubernetes.core.k8s:
@@ -26,7 +27,7 @@
 - name: Deploy Ray RBAC
   kubernetes.core.k8s:
     state: present
-    src: "{{ playbook_dir }}/../../ray-deployment/security/ray-rbac.yaml"
+    src: "{{ playbook_dir }}/../ray-deployment/security/ray-rbac.yaml"
     namespace: "{{ namespace }}"
 
 # Step 2: Create ConfigMap for Ray Serve AI model code
@@ -40,13 +41,13 @@
         name: phi3-serve-script
         namespace: "{{ namespace }}"
       data:
-        phi3_serve.py: "{{ lookup('file', playbook_dir + '/../../ai-model/ray-serve/phi3_serve.py') }}"
+        phi3_serve.py: "{{ lookup('file', playbook_dir + '/../ai-model/ray-serve/phi3_serve.py') }}"
 
 # Step 3: Deploy Ray Cluster first
 - name: Deploy Ray Cluster
   kubernetes.core.k8s:
     state: present
-    src: "{{ playbook_dir }}/../../ray-deployment/cluster/ray-cluster.yaml"
+    src: "{{ playbook_dir }}/../ray-deployment/cluster/ray-cluster.yaml"
     namespace: "{{ namespace }}"
 
 - name: Wait for Ray Cluster head to be ready
@@ -92,7 +93,7 @@
 - name: Deploy Ray Client Pod
   kubernetes.core.k8s:
     state: present
-    src: "{{ playbook_dir }}/../../ray-deployment/cluster/ray-client-pod.yaml"
+    src: "{{ playbook_dir }}/../ray-deployment/cluster/ray-client-pod.yaml"
     namespace: "{{ namespace }}"
 
 - name: Wait for Ray Client pod to be ready
@@ -111,20 +112,20 @@
 - name: Deploy Ray Serve (AI Model Server)
   kubernetes.core.k8s:
     state: present
-    src: "{{ playbook_dir }}/../../ai-model/ray-serve/phi3-ray-serve-deployment.yaml"
+    src: "{{ playbook_dir }}/../ai-model/ray-serve/phi3-ray-serve-deployment.yaml"
     namespace: "{{ namespace }}"
 
-- name: Wait for Ray Serve deployment to be ready
-  kubernetes.core.k8s_info:
-    api_version: apps/v1
-    kind: Deployment
-    name: phi3-ray-serve
-    namespace: "{{ namespace }}"
-    wait: true
-    wait_condition:
-      type: Available
-      status: "True"
-    wait_timeout: "{{ wait_timeout }}"
+# - name: Wait for Ray Serve deployment to be ready
+#   kubernetes.core.k8s_info:
+#     api_version: apps/v1
+#     kind: Deployment
+#     name: phi3-ray-serve
+#     namespace: "{{ namespace }}"
+#     wait: true
+#     wait_condition:
+#       type: Available
+#       status: "True"
+#     wait_timeout: "{{ wait_timeout }}"
 
 # Step 6: Verify deployment status
 - name: Get all pods in namespace
