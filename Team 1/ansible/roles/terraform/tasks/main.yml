@@ -1,0 +1,24 @@
+---
+- name: Ensure Terraform is installed
+  ansible.builtin.command: terraform version
+  register: terraform_version
+  changed_when: false
+
+- name: Terraform Init
+  community.general.terraform:
+    project_path: "{{ terraform_project_path }}"
+    state: present
+    force_init: true
+    workspace: default
+    backend_config: {}
+  register: tf_init
+
+- name: Terraform Apply
+  community.general.terraform:
+    project_path: "{{ terraform_project_path }}"
+    state: present
+    force_init: false
+    workspace: default
+    backend_config: {}
+    force_apply: true
+  register: tf_apply

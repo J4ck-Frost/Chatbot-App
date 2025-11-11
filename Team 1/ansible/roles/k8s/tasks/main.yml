@@ -1,0 +1,173 @@
+---
+- name: Check if kubectl is available
+  ansible.builtin.command: kubectl version --client
+  register: kubectl_version
+  changed_when: false
+
+- name: Set KUBECONFIG environment variable
+  ansible.builtin.set_fact:
+    ansible_env: "{{ ansible_env | combine({'KUBECONFIG': kubeconfig_path}) }}"
+
+- name: Create Ray dashboard secret (if password needed)
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: ray-dashboard-secret
+        namespace: "{{ namespace }}"
+      type: Opaque
+      data:
+        password: "{{ 'ray-dashboard-123' | b64encode }}"
+  ignore_errors: yes
+
+# Step 1: Deploy Ray RBAC (ServiceAccount, Role, RoleBinding)
+- name: Deploy Ray RBAC
+  kubernetes.core.k8s:
+    state: present
+    src: "{{ playbook_dir }}/../../ray-deployment/security/ray-rbac.yaml"
+    namespace: "{{ namespace }}"
+
+# Step 2: Create ConfigMap for Ray Serve AI model code
+- name: Create ConfigMap for Ray Serve script
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: phi3-serve-script
+        namespace: "{{ namespace }}"
+      data:
+        phi3_serve.py: "{{ lookup('file', playbook_dir + '/../../ai-model/ray-serve/phi3_serve.py') }}"
+
+# Step 3: Deploy Ray Cluster first
+- name: Deploy Ray Cluster
+  kubernetes.core.k8s:
+    state: present
+    src: "{{ playbook_dir }}/../../ray-deployment/cluster/ray-cluster.yaml"
+    namespace: "{{ namespace }}"
+
+- name: Wait for Ray Cluster head to be ready
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Pod
+    namespace: "{{ namespace }}"
+    label_selectors:
+      - "ray.io/cluster={{ ray_cluster_name }}"
+      - "ray.io/node-type=head"
+    wait: true
+    wait_condition:
+      type: Ready
+      status: "True"
+    wait_timeout: "{{ wait_timeout }}"
+
+- name: Wait for Ray Cluster workers to be ready
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Pod
+    namespace: "{{ namespace }}"
+    label_selectors:
+      - "ray.io/cluster={{ ray_cluster_name }}"
+      - "ray.io/node-type=worker"
+    wait: true
+    wait_condition:
+      type: Ready
+      status: "True"
+    wait_timeout: "{{ wait_timeout }}"
+
+- name: Verify Ray head service is available
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Service
+    name: "{{ ray_head_service }}"
+    namespace: "{{ namespace }}"
+  register: ray_head_service_result
+  retries: "{{ health_check_retries }}"
+  delay: 10
+  until: ray_head_service_result.resources | length > 0
+
+# Step 4: Deploy Ray Client after Ray Cluster is ready
+- name: Deploy Ray Client Pod
+  kubernetes.core.k8s:
+    state: present
+    src: "{{ playbook_dir }}/../../ray-deployment/cluster/ray-client-pod.yaml"
+    namespace: "{{ namespace }}"
+
+- name: Wait for Ray Client pod to be ready
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Pod
+    name: ray-client
+    namespace: "{{ namespace }}"
+    wait: true
+    wait_condition:
+      type: Ready
+      status: "True"
+    wait_timeout: "{{ wait_timeout }}"
+
+# Step 5: Deploy Ray Serve (AI Model) after Ray cluster and client are ready
+- name: Deploy Ray Serve (AI Model Server)
+  kubernetes.core.k8s:
+    state: present
+    src: "{{ playbook_dir }}/../../ai-model/ray-serve/phi3-ray-serve-deployment.yaml"
+    namespace: "{{ namespace }}"
+
+- name: Wait for Ray Serve deployment to be ready
+  kubernetes.core.k8s_info:
+    api_version: apps/v1
+    kind: Deployment
+    name: phi3-ray-serve
+    namespace: "{{ namespace }}"
+    wait: true
+    wait_condition:
+      type: Available
+      status: "True"
+    wait_timeout: "{{ wait_timeout }}"
+
+# Step 6: Verify deployment status
+- name: Get all pods in namespace
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Pod
+    namespace: "{{ namespace }}"
+  register: all_pods
+
+- name: Display deployment status
+  ansible.builtin.debug:
+    msg: |
+      🎉 Ray AI Deployment Complete! 
+      
+      Ray Cluster: {{ ray_cluster_name }}
+      Namespace: {{ namespace }}
+      
+      Components deployed:
+      ✓ Ray RBAC (ServiceAccount, Role, RoleBinding)
+      ✓ Ray Cluster (head + workers)
+      ✓ Ray Client (development pod)
+      ✓ Ray Serve (AI model: Phi3)
+      
+      Pods Status:
+      {% for pod in all_pods.resources %}
+      - {{ pod.metadata.name }}: {{ pod.status.phase }}
+      {% endfor %}
+      
+      Access your AI model:
+      
+      # Check Ray dashboard
+      kubectl port-forward svc/{{ ray_head_service }} {{ ray_dashboard_port }}:{{ ray_dashboard_port }} -n {{ namespace }}
+      # Open: http://localhost:{{ ray_dashboard_port }}
+      
+      # Access Ray Serve AI endpoints (via port-forward to pod)
+      kubectl port-forward deployment/phi3-ray-serve 8000:8000 -n {{ namespace }}
+      # API: http://localhost:8000
+      
+      # Access Ray Client for development
+      kubectl exec -it ray-client -- python -n {{ namespace }}
+      
+      # Check logs
+      kubectl logs -l app=phi3-ray-serve -n {{ namespace }}
+      
+      # Test AI model
+      curl -X POST http://localhost:8000/chat -H "Content-Type: application/json" -d '{"message": "Hello AI!"}'

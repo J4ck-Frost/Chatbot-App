@@ -14,9 +14,9 @@ logger = logging.getLogger(__name__)
     num_replicas=1,
     ray_actor_options={
         "num_gpus": 1.0,
-        "num_cpus": 0.5,  # Reduced from 1.5 to 0.5
+        "num_cpus": 2
     },
-    max_concurrent_queries=5,  # Reduced from 10 to 5
+    max_concurrent_queries=5,
 )
 class Phi3ServeDeployment:
     def __init__(self):
@@ -138,7 +138,8 @@ class Phi3ServeDeployment:
         import torch
         
         # Format prompt
-        prompt = f"User: {message}\nAssistant:"
+        # prompt = f"User: {message}\nAssistant:"
+        prompt = message
         
         # Tokenize
         inputs = self.tokenizer.encode(prompt, return_tensors="pt", truncation=True, max_length=1024)
@@ -167,14 +168,8 @@ class Phi3ServeDeployment:
         return not self.fallback_mode
 
 
-@serve.deployment(name="health-check", num_replicas=1)
-class HealthCheckDeployment:
-    async def __call__(self, request):
-        return {"status": "healthy", "service": "phi3-ray-serve"}
-
 # Ray Serve application
 phi3_app = Phi3ServeDeployment.bind()
-health_app = HealthCheckDeployment.bind()
 
 if __name__ == "__main__":
     # Connect to Ray cluster
@@ -194,14 +189,9 @@ if __name__ == "__main__":
     logger.info("📦 Deploying Phi3 model...")
     serve.run(phi3_app, name="phi3-model", route_prefix="/")
     
-    # Deploy health check endpoint  
-    logger.info("💚 Deploying health check...")
-    serve.run(health_app, name="health-check", route_prefix="/health")
-    
     # Keep the service running
     logger.info("✅ Ray Serve deployment started successfully!")
     logger.info("🔄 Service is now running and ready to accept requests...")
-    logger.info("💚 Health endpoint available at /health")
     
     import time
     try:
