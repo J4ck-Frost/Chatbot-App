@@ -5,6 +5,7 @@ resource "google_storage_bucket" "this" {
   location                    = var.location
   storage_class              = var.storage_class
   uniform_bucket_level_access = true   # Enable uniform bucket-level access for security
+  force_destroy = true
 
   # Enable versioning if specified
   versioning {

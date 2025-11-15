@@ -42,7 +42,7 @@ echo "  - Test application"
 read -p "Do you want to continue? (y/N): " -n 1 -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
-    ansible-playbook -i inventory site.yml --tags docker,kubernetes
+    ansible-playbook -i inventory site.yml
     
     if [ $? -eq 0 ]; then
         echo ""
