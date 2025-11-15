@@ -56,7 +56,7 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
         echo "kubectl port-forward svc/ray-cluster-head-svc 8265:8265"
         echo "# Then open: http://localhost:8265"
         echo ""
-         echo "# Access AI model:"
+        echo "# Access AI model:"
         echo "kubectl port-forward svc/ray-cluster-head-svc 8000:8000"
         echo "# Then open: http://localhost:8000"
         echo ""
