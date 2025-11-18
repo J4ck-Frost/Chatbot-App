@@ -20,6 +20,5 @@
     test_app_path: "{{ playbook_dir }}/../test-app"
 
     # Helm App Deployment Configuration
-    helm_release_name: "postgres-test-app"
     helm_chart_path: "{{ playbook_dir }}/../helms/test-app"
     helm_values_file: "values-dev.yaml"

@@ -128,9 +128,9 @@ resource "local_file" "helm_values" {
     replicaCount: 1
 
     app:
-      name: postgres-test-app
+      name: ${var.app_name}
       image:
-        repository: ${replace(module.artifact_registry.repository_url, "https://", "")}/postgres-test-app
+        repository: ${replace(module.artifact_registry.repository_url, "https://", "")}/${var.app_name}
         tag: latest
         pullPolicy: Always
       containerPort: 3000
@@ -155,7 +155,7 @@ resource "local_file" "helm_values" {
     serviceAccountName: ${kubernetes_service_account.app-ksa.metadata[0].name}
 
     service:
-      name: postgres-test-app-service
+      name: ${var.app_name}-service
       type: LoadBalancer
       port: 80
   EOT

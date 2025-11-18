@@ -3,6 +3,10 @@
   set_fact:
     artifact_registry_host: "{{ tf_outputs.artifact_registry_url.value | regex_replace('^https://', '') }}"
 
+- name: Set application name
+  set_fact:
+    app_name: "{{ tf_outputs.app_name.value }}"
+
 # -------------------------------------------------------------
 # 1. Docker: Build App Image
 # -------------------------------------------------------------
@@ -13,14 +17,14 @@
 
 - name: Build Docker image locally
   community.docker.docker_image:
-    name: "{{ artifact_registry_host }}/{{ helm_release_name }}:latest"
+    name: "{{ artifact_registry_host }}/{{ app_name }}:latest"
     source: build
     build:
       path: "{{ test_app_path }}"
 
 - name: Push Docker image to Artifact Registry
   community.docker.docker_image:
-    name: "{{ artifact_registry_host }}/{{ helm_release_name }}:latest"
+    name: "{{ artifact_registry_host }}/{{ app_name }}:latest"
     source: local
     push: yes
 
@@ -33,20 +37,20 @@
   failed_when: helm_check.rc != 0
 
 - name: Check if Helm release exists
-  ansible.builtin.command: helm status {{ helm_release_name }}
+  ansible.builtin.command: helm status {{ app_name }}
   register: helm_status
   ignore_errors: yes
 
 - name: Install Helm release if not exists
   ansible.builtin.command: >
-    helm install "{{ helm_release_name }}" "{{ helm_chart_path }}"
+    helm install "{{ app_name }}" "{{ helm_chart_path }}"
     -f "{{ helm_chart_path }}/{{ helm_values_file }}"
   when: helm_status.rc != 0
   register: helm_output
 
 - name: Upgrade Helm release if exists
   ansible.builtin.command: >
-    helm upgrade "{{ helm_release_name }}" "{{ helm_chart_path }}"
+    helm upgrade "{{ app_name }}" "{{ helm_chart_path }}"
     -f "{{ helm_chart_path }}/{{ helm_values_file }}"
   when: helm_status.rc == 0
   register: helm_output
@@ -62,7 +66,7 @@
   kubernetes.core.k8s_info:
     kind: Deployment
     namespace: "{{ namespace }}"
-    name: "{{ helm_release_name }}"
+    name: "{{ app_name }}"
   register: deployment_info
   until: >
     deployment_info.resources
@@ -79,7 +83,7 @@
   kubernetes.core.k8s_info:
     kind: Service
     namespace: "{{ namespace }}"
-    name: "{{ helm_release_name }}-service"
+    name: "{{ app_name }}-service"
   register: svc
 
 - name: Display external IP

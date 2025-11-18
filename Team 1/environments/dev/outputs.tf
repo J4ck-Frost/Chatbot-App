@@ -15,6 +15,11 @@ output "region" {
   
 }
 
+output "app_name" {
+  description = "Application Name"
+  value       = var.app_name
+}
+
 output "database_instance_ip" {
   description = "Database instance private IP"
   value       = module.sql.instance_ip

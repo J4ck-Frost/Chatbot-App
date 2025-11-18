@@ -189,3 +189,9 @@ variable "db_password" {
   default     = ""
   sensitive   = true
 }
+
+variable "app_name" {
+  description = "Application name"
+  type        = string
+  default     = "postgres-test-app"
+}
