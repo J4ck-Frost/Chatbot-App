@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.app.name }}
+  labels:
+    app: {{ .Values.app.name }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.app.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.app.name }}
+    spec:
+      serviceAccountName: {{ .Values.serviceAccountName }}
+      containers:
+        - name: {{ .Values.app.name }}
+          image: "{{ .Values.app.image.repository }}:{{ .Values.app.image.tag }}"
+          imagePullPolicy: {{ .Values.app.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.app.containerPort }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.app.livenessProbe.path }}
+              port: {{ .Values.app.livenessProbe.port }}
+            initialDelaySeconds: {{ .Values.app.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.app.livenessProbe.periodSeconds }}
+        - name: cloud-sql-proxy
+          image: "{{ .Values.cloudSqlProxy.image.repository }}:{{ .Values.cloudSqlProxy.image.tag }}"
+          command:
+            - "/cloud_sql_proxy"
+            - "-instances={{ .Values.cloudSqlProxy.projectId }}:{{ .Values.cloudSqlProxy.region }}:{{ .Values.cloudSqlProxy.instanceName }}=tcp:5432"
+            - "-enable_iam_login"
+          env:
+            - name: PROJECT_ID
+              value: "{{ .Values.cloudSqlProxy.projectId }}"
+            - name: REGION
+              value: "{{ .Values.cloudSqlProxy.region }}"
+            - name: INSTANCE_NAME
+              value: "{{ .Values.cloudSqlProxy.instanceName }}"
+          resources:
+            limits:
+              cpu: {{ .Values.cloudSqlProxy.resources.limits.cpu }}
+              memory: {{ .Values.cloudSqlProxy.resources.limits.memory }}

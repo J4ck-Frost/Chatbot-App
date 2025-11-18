@@ -121,4 +121,44 @@ resource "local_file" "app_env" {
   EOT
 }
 
+# Generate Helm values.yaml dynamically
+resource "local_file" "helm_values" {
+  filename = "${path.module}/../../helms/test-app/values-dev.yaml"
+  content  = <<EOT
+    replicaCount: 1
+
+    app:
+      name: postgres-test-app
+      image:
+        repository: ${replace(module.artifact_registry.repository_url, "https://", "")}/postgres-test-app
+        tag: latest
+        pullPolicy: Always
+      containerPort: 3000
+      livenessProbe:
+        path: /
+        port: 3000
+        initialDelaySeconds: 45
+        periodSeconds: 10
+
+    cloudSqlProxy:
+      image:
+        repository: gcr.io/cloudsql-docker/gce-proxy
+        tag: "1.37.10"
+      projectId: ${var.project_id}
+      region: ${var.region}
+      instanceName: ${var.instance_name}
+      resources:
+        limits:
+          cpu: 100m
+          memory: 128Mi
+
+    serviceAccountName: ${kubernetes_service_account.app-ksa.metadata[0].name}
+
+    service:
+      name: postgres-test-app-service
+      type: LoadBalancer
+      port: 80
+  EOT
+}
+
 # # End of environment configuration

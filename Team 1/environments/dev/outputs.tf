@@ -3,6 +3,18 @@ output "artifact_registry_url" {
   value       = module.artifact_registry.repository_url
 }
 
+output "project_id" {
+  description = "GCP Project ID"
+  value       = var.project_id
+  
+}
+
+output "region" {
+  description = "GCP Region"
+  value       = var.region
+  
+}
+
 output "database_instance_ip" {
   description = "Database instance private IP"
   value       = module.sql.instance_ip
