@@ -3,16 +3,16 @@
 # Build and Deploy PostgreSQL Test App to GKE
 
 echo "Getting GKE cluster credentials..."
-gcloud container clusters get-credentials gke-cluster-dev --zone=asia-southeast1-a --project=devopts-k2-advance
+gcloud container clusters get-credentials app-cluster --zone=asia-southeast1-a --project=new-devopts-k2-advance
 
 echo "Building Docker image..."
-docker build -t asia-southeast1-docker.pkg.dev/devopts-k2-advance/team1-ai-repo/postgres-test-app:latest .
+docker build -t asia-southeast1-docker.pkg.dev/new-devopts-k2-advance/app-repo/postgres-test-app:latest .
+
+echo "Config docker credentials for Artifact Registry..."
+gcloud auth configure-docker asia-southeast1-docker.pkg.dev
 
 echo "Pushing image to Artifact Registry..."
-docker push asia-southeast1-docker.pkg.dev/devopts-k2-advance/team1-ai-repo/postgres-test-app:latest
-
-echo "Updating Kubernetes deployment with correct image..."
-sed -i 's|image: postgres-test-app:latest|image: asia-southeast1-docker.pkg.dev/devopts-k2-advance/team1-ai-repo/postgres-test-app:latest|g' k8s-deployment.yaml
+docker push asia-southeast1-docker.pkg.dev/new-devopts-k2-advance/app-repo/postgres-test-app:latest
 
 echo "Deploying to GKE..."
 kubectl apply -f k8s-deployment.yaml

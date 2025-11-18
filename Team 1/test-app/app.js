@@ -4,6 +4,8 @@ const path = require("path");
 const multer = require("multer");
 const { Pool } = require("pg");
 const { Storage } = require("@google-cloud/storage");
+const { Connector, AuthTypes, IpAddressTypes } = require('@google-cloud/cloud-sql-connector');
+
 const storage = new Storage();
 const bucketName = process.env.GCS_BUCKET_NAME;
 const bucket = storage.bucket(bucketName);
@@ -15,22 +17,9 @@ const port = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-// PostgreSQL pool
-const pool = new Pool({
-  host: process.env.DB_HOST,
-  port: process.env.DB_PORT,
-  database: process.env.DB_NAME,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  ssl:
-    process.env.DB_SSL_MODE === "disable"
-      ? false
-      : { rejectUnauthorized: false },
-});
+const instanceConnectionName = `${process.env.PROJECT_ID}:${process.env.REGION}:${process.env.INSTANCE_NAME}`;
 
-// Multer setup (store files in memory only, mock upload)
-const upload = multer({ storage: multer.memoryStorage() });
-
+let pool;
 // Ensure todo table exists
 async function initDB() {
   const client = await pool.connect();
@@ -45,7 +34,36 @@ async function initDB() {
   client.release();
   console.log("✅ Todo table ready");
 }
-initDB();
+
+// Cloud SQL Connector setup
+async function initPool() {
+  const connector = new Connector();
+  const clientOpts = await connector.getOptions({
+    instanceConnectionName: instanceConnectionName,
+    authType: AuthTypes.IAM,
+    ipType: IpAddressTypes.PRIVATE,
+  });
+  pool = new Pool({
+    ...clientOpts,
+    user: process.env.DB_IAM_USER,
+    database: process.env.DB_NAME,
+    max: 5
+  })
+  // Test connection
+  return pool.query('SELECT 1').then(() => {
+    console.log("✅ Cloud SQL IAM authentication successful");
+  });
+}
+
+initPool().then(() => {
+  console.log("✅ Connected to Cloud SQL via IAM");
+  return initDB();
+}).catch(err => {
+  console.error("❌ Failed to connect to Cloud SQL:", err);
+});
+
+// Multer setup (store files in memory only, mock upload)
+const upload = multer({ storage: multer.memoryStorage() });
 
 // --------- REST API ---------
 
