@@ -39,3 +39,8 @@ variable "k8s_namespace" {
   type        = string
   default     = "default"
 }
+
+variable "app_service_account_email" {
+  description = "Email of the GCP service account used by the application"
+  type        = string
+}

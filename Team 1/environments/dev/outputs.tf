@@ -2,3 +2,18 @@ output "artifact_registry_url" {
   description = "Artifact Registry endpoint (Docker registry URL)"
   value       = module.artifact_registry.repository_url
 }
+
+output "database_instance_ip" {
+  description = "Database instance private IP"
+  value       = module.sql.instance_ip
+}
+
+output "database_port" {
+  description = "Database port"
+  value       = module.sql.database_port
+}
+
+output "database_name" {
+  description = "Database name"
+  value       = module.sql.database_name
+}

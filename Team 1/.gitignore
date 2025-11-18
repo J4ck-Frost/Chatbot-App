@@ -12,3 +12,5 @@ terraform.tfvars
 
 terraform.tfstate.1761017945.backup
 
+terraform.tfstate*.backup
+

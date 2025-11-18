@@ -17,13 +17,3 @@ output "database_name" {
   description = "The name of the database"
   value       = google_sql_database.database.name
 }
-
-output "database_user" {
-  description = "The database user name"
-  value       = google_sql_user.user.name
-}
-
-output "service_account_email" {
-  description = "Email of the service account for Cloud SQL access"
-  value       = google_service_account.cloud_sql_access.email
-}

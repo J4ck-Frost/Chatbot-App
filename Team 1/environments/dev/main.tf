@@ -11,6 +11,7 @@ module "vpc" {
   project_id = var.project_id
   vpc_name   = var.vpc_name
   subnets    = var.subnets_list
+  region     = var.region
 }
 
 # GKE (Google Kubernetes Engine) module - Creates managed Kubernetes cluster
@@ -99,6 +100,25 @@ module "sql" {
 
   # Kubernetes namespace where pods will run (for Workload Identity bindings if used)
   k8s_namespace  = "default"  # or your application namespace
+
+  app_service_account_email = google_service_account.app-gsa.email
+}
+
+# Create test app .env file
+resource "local_file" "app_env" {
+  filename = "${path.module}/../../test-app/.env"
+  content  = <<EOT
+    PORT=3000
+    DB_HOST=${module.sql.instance_ip}
+    DB_PORT=${module.sql.database_port}
+    DB_NAME=${module.sql.database_name}
+    DB_IAM_USER=${trimsuffix(google_service_account.app-gsa.email, ".gserviceaccount.com")}
+    GCS_BUCKET_NAME=${module.app_bucket.bucket_name}
+    PROJECT_ID=${var.project_id}
+    REGION=${var.region}
+    INSTANCE_NAME=${var.instance_name}
+    DB_SSL_MODE=disable
+  EOT
 }
 
 # # End of environment configuration
