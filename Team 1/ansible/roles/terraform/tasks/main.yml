@@ -4,21 +4,26 @@
   register: terraform_version
   changed_when: false
 
-- name: Terraform Init
+- name: Terraform Apply
   community.general.terraform:
     project_path: "{{ terraform_project_path }}"
     state: present
     force_init: true
     workspace: default
     backend_config: {}
-  register: tf_init
-
-- name: Terraform Apply
-  community.general.terraform:
-    project_path: "{{ terraform_project_path }}"
-    state: present
-    force_init: false
-    workspace: default
-    backend_config: {}
-    force_apply: true
   register: tf_apply
+
+- name: Get Terraform outputs as JSON
+  ansible.builtin.command: terraform output -json
+  args:
+    chdir: "{{ terraform_project_path }}"
+  register: tf_outputs_json
+  changed_when: false
+
+- name: Parse Terraform outputs
+  set_fact:
+    tf_outputs: "{{ tf_outputs_json.stdout | from_json }}"
+
+- name: Display Terraform outputs (debug)
+  debug:
+    var: tf_outputs

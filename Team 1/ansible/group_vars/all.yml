@@ -1,41 +1,25 @@
-# GCP Configuration (from terraform.tfvars)
-gcp_project_id: "devopts-k2-advance"
-gcp_region: "asia-southeast1" 
-gcp_artifact_registry: "asia-southeast1-docker.pkg.dev/devopts-k2-advance/ray-models"
+    # Kubernetes Configuration
+    kubeconfig_path: "~/.kube/config"
+    namespace: "default"
 
-# Docker Configuration
-docker_registry_username: "_json_key"
-docker_registry_password: "{{ lookup('file', 'gcp-service-account.json') | default('') }}"
+    # Environment
+    environment: "dev"
 
-# Kubernetes Configuration
-kubeconfig_path: "~/.kube/config"
-namespace: "default"
+    # Ray Configuration
+    ray_cluster_name: "ray-cluster"
+    ray_head_service: "ray-cluster-head-svc"
+    ray_dashboard_port: 8265
+    ray_client_port: 10001
 
-# Environment
-environment: "dev"
+    # Deployment Configuration
+    wait_timeout: 300
+    health_check_retries: 10
 
-# Ray Configuration
-ray_cluster_name: "ray-cluster"
-ray_head_service: "ray-cluster-head-svc"
-ray_dashboard_port: 8265
-ray_client_port: 10001
+    # Terraform configuration paths
+    terraform_project_path: "{{ playbook_dir }}/../environments/dev"
+    test_app_path: "{{ playbook_dir }}/../test-app"
 
-# Deployment Configuration
-wait_timeout: 300
-health_check_retries: 10
-
-# Terraform configuration paths
-terraform_project_path: "{{ playbook_dir }}/../../environments/{{ environment }}"
-
-# Database Configuration (from terraform.tfvars)
-db_name: "postgres-db"
-db_user: "postgres"
-instance_name: "dev-postgres"
-
-# GKE Configuration (from terraform.tfvars)
-cpu_pool_machine_type: "e2-medium"
-cpu_node_count: 1
-enable_gpu_pool: true
-gpu_machine_type: "n1-standard-4"
-gpu_type: "nvidia-tesla-p4"
-gpu_count: 1
+    # Helm App Deployment Configuration
+    helm_release_name: "postgres-test-app"
+    helm_chart_path: "{{ playbook_dir }}/../helms/test-app"
+    helm_values_file: "values-dev.yaml"

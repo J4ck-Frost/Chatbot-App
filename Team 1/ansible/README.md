@@ -15,16 +15,7 @@ cd "Team 1/ansible"
 ansible-galaxy collection install -r requirements.yml
 ```
 
-### 2. Configure Variables
-Edit `group_vars/all.yml` to match your environment:
-```yaml
-gcp_project_id: "your-actual-project-id"
-gcp_region: "your-region" 
-gcp_artifact_registry: "your-registry-url"
-# ... other settings
-```
-
-### 3. Deploy Everything
+### 2. Deploy Everything
 ```bash
 # Option A: Use the deployment script (recommended)
 chmod +x deploy.sh
@@ -134,10 +125,6 @@ kubectl logs deployment/phi3-worker-model
 ## Configuration Reference
 
 ### Variables in `group_vars/all.yml`
-- `gcp_project_id`: Your GCP project ID
-- `gcp_region`: GCP region for resources
-- `gcp_artifact_registry`: Docker registry URL
-- `namespace`: Kubernetes namespace (default: default)
 - `wait_timeout`: Max wait time for deployments (default: 300s)
 - `health_check_retries`: Health check retry count (default: 10)
 

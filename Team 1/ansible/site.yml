@@ -13,26 +13,27 @@
           
           Environment: {{ environment }}
           Namespace: {{ namespace }}
-          Ray Cluster: {{ ray_cluster_name }}
-          
-          Components to deploy:
-          ✓ Ray RBAC (ServiceAccount, Role, RoleBinding)
-          ✓ Ray Cluster (head + GPU workers)  
-          ✓ Ray Client (development pod)
-          ✓ ConfigMap (AI model Python code)
-          ✓ Ray Serve (Phi3 AI model from ray-serve folder)
           
           Prerequisites:
           - kubectl is configured 
           - Kubernetes cluster is accessible
 
   tasks:
-    - name: Prepare Docker Environment
-      include_role:
-        name: docker
-      tags: ['docker', 'prepare']
+    # - name: Prepare Docker Environment
+    #   include_role:
+    #     name: docker
+    #   tags: ['docker', 'prepare']
 
-    - name: Deploy to Kubernetes
+    # - name: Deploy to Kubernetes
+    #   include_role:
+    #     name: k8s
+    #   tags: ['kubernetes', 'deploy']
+    - name: Apply Terraform Infrastructure
       include_role:
-        name: k8s
-      tags: ['kubernetes', 'deploy']
+        name: terraform
+      tags: ['terraform', 'infrastructure']
+
+    - name: Deploy Test Application
+      include_role:
+        name: app-deploy
+      tags: ['app-deploy', 'deploy']
