@@ -19,10 +19,10 @@
           - Kubernetes cluster is accessible
 
   tasks:
-    # - name: Prepare Docker Environment
-    #   include_role:
-    #     name: docker
-    #   tags: ['docker', 'prepare']
+    - name: Prepare Docker Environment
+      include_role:
+        name: docker
+      tags: ['docker', 'prepare']
 
     # - name: Deploy to Kubernetes
     #   include_role:
