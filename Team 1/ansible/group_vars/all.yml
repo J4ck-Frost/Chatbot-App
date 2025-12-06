@@ -1,24 +1,29 @@
-    # Kubernetes Configuration
-    kubeconfig_path: "~/.kube/config"
-    namespace: "default"
+# Kubernetes Config
+kubeconfig_path: "~/.kube/config"
+namespace: "default"
+environment: "dev"
 
-    # Environment
-    environment: "dev"
+# Ray / AI Configuration
+ray_cluster_name: "ray-cluster"
+ai_service_name: "qwen-unified-service" # Tên service K8s của con AI
+ai_service_port: 8000
 
-    # Ray Configuration
-    ray_cluster_name: "ray-cluster"
-    ray_head_service: "ray-cluster-head-svc"
-    ray_dashboard_port: 8265
-    ray_client_port: 10001
+# Image Names (Đặt tên để Cloud Build tạo ra)
+ai_image_name: "qwen2-serve"
+ai_image_tag: "v1"
+app_image_name: "postgres-test-app" # Tên con App của bạn
 
-    # Deployment Configuration
-    wait_timeout: 300
-    health_check_retries: 10
+# Terraform Paths
+terraform_project_path: "{{ playbook_dir }}/../environments/dev"
 
-    # Terraform configuration paths
-    terraform_project_path: "{{ playbook_dir }}/../environments/dev"
-    test_app_path: "{{ playbook_dir }}/../test-app"
+# Paths Source Code
+ai_source_path: "{{ playbook_dir }}/../ai-model"
+app_source_path: "{{ playbook_dir }}/../test-app" # Đường dẫn code App
 
-    # Helm App Deployment Configuration
-    helm_chart_path: "{{ playbook_dir }}/../helms/test-app"
-    helm_values_file: "values-dev.yaml"
+# Helm Config
+helm_chart_path: "{{ playbook_dir }}/../helms/test-app"
+helm_values_file: "values-dev.yaml"
+app_release_name: "test-app"
+
+# Timeout Deployment
+wait_timeout: 300

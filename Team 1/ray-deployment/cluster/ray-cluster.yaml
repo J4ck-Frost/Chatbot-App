@@ -4,7 +4,7 @@ metadata:
   name: ray-cluster
   namespace: default
 spec:
-  rayVersion: '2.8.0'
+  rayVersion: '2.52.0'
   enableInTreeAutoscaling: true
   autoscalerOptions:
     upscalingMode: Default
@@ -25,10 +25,12 @@ spec:
     template:
       spec:
         nodeSelector:
+          # Head chạy trên CPU pool là OK
           cloud.google.com/gke-nodepool: cpu-pool
         containers:
         - name: ray-head
-          image: rayproject/ray:2.8.0
+          # [SỬA]: Head cũng phải dùng image mới để đồng bộ môi trường Python
+          image: asia-southeast1-docker.pkg.dev/striking-figure-474817-a3/team1-ai-repo/qwen2-serve:v1
           ports:
           - containerPort: 6379
             name: gcs-server
@@ -42,11 +44,11 @@ spec:
             name: serve
           resources:
             limits:
-              cpu: "800m"
-              memory: "2Gi"
+              cpu: "1"      # Tăng nhẹ cho Head node ổn định
+              memory: "4Gi"
             requests:
-              cpu: "400m"
-              memory: "1Gi"
+              cpu: "500m"
+              memory: "2Gi"
           env:
           - name: RAY_DISABLE_IMPORT_WARNING
             value: "1"
@@ -74,43 +76,18 @@ spec:
           cloud.google.com/gke-nodepool: gpu-pool
         containers:
         - name: ray-worker
-          image: rayproject/ray:2.8.0-gpu
+          # [SỬA]: Worker chạy model Qwen
+          image: asia-southeast1-docker.pkg.dev/striking-figure-474817-a3/team1-ai-repo/qwen2-serve:v1
           resources:
+            # [QUAN TRỌNG]: Qwen 7B cần nhiều RAM hơn Phi-3
             limits:
               nvidia.com/gpu: 1
-              cpu: "1500m" 
-              memory: "4Gi" 
+              cpu: "4"       # Tăng CPU để xử lý tiền xử lý (tokenize)
+              memory: "16Gi" # Tăng lên 16GB RAM hệ thống (4GB là crash ngay)
             requests:
               nvidia.com/gpu: 1
-              cpu: "500m"
-              memory: "2Gi"
+              cpu: "2"
+              memory: "8Gi"
           env:
           - name: RAY_DISABLE_IMPORT_WARNING
             value: "1"
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: ray-cluster-head-svc
-  namespace: default
-spec:
-  type: ClusterIP
-  selector:
-    ray.io/node-type: head
-    ray.io/cluster: ray-cluster
-  ports:
-    - name: gcs
-      port: 6379
-      targetPort: 6379
-    - name: dashboard
-      port: 8265
-      targetPort: 8265
-    - name: client
-      port: 10001
-      targetPort: 10001
-    - name: metrics
-      port: 8080
-      targetPort: 8080
-    - name: serve
-      port: 8000
-      targetPort: 8000

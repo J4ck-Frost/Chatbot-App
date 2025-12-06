@@ -1,0 +1,25 @@
+replicaCount: 1
+
+app:
+  name: chatbot-app
+  image:
+    repository: asia-southeast1-docker.pkg.dev/striking-figure-474817-a3/team1-ai-repo/chatbot-app
+    tag: latest
+    pullPolicy: IfNotPresent
+  containerPort: 7860
+  livenessProbe:
+    path: /
+    port: 7860
+    initialDelaySeconds: 20
+    periodSeconds: 10
+
+service:
+  type: LoadBalancer
+  port: 80
+
+serviceAccountName: instance-dev-ksa
+fullnameOverride: chatbot-app
+
+env:
+  AI_API_URL: "http://qwen-unified-service:8000/chat"
+  GCS_BUCKET_NAME: "app-bucket-dev-striking-figure-474817-a3"

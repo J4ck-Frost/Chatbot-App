@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qwen-ray-serve
+  namespace: default
+  labels:
+    app: qwen-ray-serve
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      # [QUAN TRỌNG] Phải khớp với template bên dưới
+      app: qwen-ray-serve
+  template:
+    metadata:
+      labels:
+        # [QUAN TRỌNG] Label này được Service dùng để tìm Pod
+        app: qwen-ray-serve
+    spec:
+      tolerations:
+      - key: "cloud.google.com/gke-preemptible"
+        operator: "Equal"
+        value: "true"
+        effect: "NoSchedule"
+      nodeSelector:
+        cloud.google.com/gke-nodepool: gpu-pool
+      containers:
+      - name: qwen-serve
+        image: asia-southeast1-docker.pkg.dev/striking-figure-474817-a3/team1-ai-repo/qwen2-serve:v1
+        imagePullPolicy: Always
+        command: ["/bin/bash", "-c"]
+        args:
+          - |
+            echo "Starting Qwen2.5 Ray Serve..."
+            # Đảm bảo file python của bạn binding host 0.0.0.0
+            python /app/ray-serve/qwen_serve.py
+        ports:
+        - containerPort: 8000
+          name: serve
+        env:
+        - name: RAY_ADDRESS
+          value: "ray://ray-cluster-head-svc:10001"
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        - name: RAY_SERVE_ENABLE_EXPERIMENTAL_STREAMING
+          value: "1"
+        resources:
+          # [KHUYẾN NGHỊ] Tăng tài nguyên để tránh crash khi load model
+          requests:
+            cpu: "2"          # Tăng lên 2 vCPU để xử lý request http nhanh hơn
+            memory: "8Gi"     # Cần ít nhất 8GB để load model an toàn
+            nvidia.com/gpu: 1
+          limits:
+            cpu: "4"
+            memory: "16Gi"    # Cho dư dả để Ray không bị OOM
+            nvidia.com/gpu: 1
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  # Đổi tên service cho đúng với model Qwen
+  name: qwen-unified-service
+  namespace: default
+  labels:
+    app: qwen-ray-serve
+spec:
+  type: LoadBalancer
+  selector:
+    # [QUAN TRỌNG] Đã sửa từ 'phi3-ray-serve' thành 'qwen-ray-serve'
+    # app: qwen-ray-serve
+    ray.io/cluster: ray-cluster
+    ray.io/node-type: head
+  ports:
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP
+    name: api

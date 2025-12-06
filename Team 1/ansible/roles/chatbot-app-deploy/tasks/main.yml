@@ -1,27 +1,27 @@
 ---
-- name: Set facts from Terraform
+- name: Load Terraform outputs
   set_fact:
     gcp_project_id: "{{ tf_outputs.project_id.value }}"
     gcp_repo_url: "{{ tf_outputs.artifact_registry_url.value | regex_replace('^https://', '') }}"
 
-# 1. Build App Image (Cloud Build)
-- name: Build Test App Image (Cloud Build)
+# Build image app mới
+- name: Build Chatbot App Image
   ansible.builtin.command: >
-    gcloud builds submit "{{ app_source_path }}"
-    --tag "{{ gcp_repo_url }}/{{ app_image_name }}:latest"
+    gcloud builds submit "{{ playbook_dir }}/../chatbot-app"
+    --tag "{{ gcp_repo_url }}/chatbot-app:latest"
     --project "{{ gcp_project_id }}"
     --quiet
   changed_when: true
 
-# 2. Deploy Helm & Kết nối AI
-- name: Deploy App via Helm (with AI Connection)
+# Deploy helm chart app mới
+- name: Deploy Chatbot App Helm Chart
   ansible.builtin.command: >
-    helm upgrade --install "{{ app_release_name }}" "{{ helm_chart_path }}"
-    -f "{{ helm_chart_path }}/{{ helm_values_file }}"
-    --set image.repository="{{ gcp_repo_url }}/{{ app_image_name }}"
+    helm upgrade --install chatbot-app
+    "{{ playbook_dir }}/../helms/chatbot-app"
+    -f "{{ playbook_dir }}/../helms/chatbot-app/values-dev.yaml"
+    --set image.repository="{{ gcp_repo_url }}/chatbot-app"
     --set image.tag="latest"
     --set env.AI_API_URL="http://{{ ai_service_name }}:{{ ai_service_port }}/chat"
-  register: helm_out
   changed_when: true
 
 - name: Display Integration Info

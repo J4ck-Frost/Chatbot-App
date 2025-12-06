@@ -60,7 +60,6 @@ variable "cpu_pool_machine_type" {
 variable "cpu_pool_disk_size" {
   description = "Disk size (GB) for CPU node pool"
   type        = number
-  default     = 10
 }
 
 variable "cpu_node_count" {
@@ -102,13 +101,11 @@ variable "gpu_node_count" {
 variable "gpu_machine_type" {
   description = "Machine type for GPU nodes"
   type        = string
-  default     = "n1-standard-1"
 }
 
 variable "gpu_disk_size" {
   description = "Disk size for GPU nodes"
   type        = number
-  default     = 15
 }
 
 variable "gpu_type" {

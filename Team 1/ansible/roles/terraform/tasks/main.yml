@@ -9,11 +9,9 @@
     project_path: "{{ terraform_project_path }}"
     state: present
     force_init: true
-    workspace: default
-    backend_config: {}
   register: tf_apply
 
-- name: Get Terraform outputs as JSON
+- name: Get Terraform outputs
   ansible.builtin.command: terraform output -json
   args:
     chdir: "{{ terraform_project_path }}"
@@ -23,7 +21,3 @@
 - name: Parse Terraform outputs
   set_fact:
     tf_outputs: "{{ tf_outputs_json.stdout | from_json }}"
-
-- name: Display Terraform outputs (debug)
-  debug:
-    var: tf_outputs

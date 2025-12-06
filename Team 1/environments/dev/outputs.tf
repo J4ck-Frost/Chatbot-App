@@ -34,3 +34,8 @@ output "database_name" {
   description = "Database name"
   value       = module.sql.database_name
 }
+
+output "kubernetes_cluster_name" {
+  description = "GKE Cluster Name"
+  value       = module.gke.cluster_name 
+}

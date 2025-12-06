@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "chatbot-app.fullname" . }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "chatbot-app.name" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "chatbot-app.name" . }}
+    spec:
+      containers:
+        - name: chatbot-app
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.service.port }}
+          env:
+            - name: AI_API_URL
+              value: {{ .Values.env.AI_API_URL | quote }}
+
+            - name: GCS_BUCKET_NAME
+              value: {{ .Values.env.GCS_BUCKET_NAME | quote }}
+
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: {{ .Values.env.GOOGLE_APPLICATION_CREDENTIALS | quote }}
+
+

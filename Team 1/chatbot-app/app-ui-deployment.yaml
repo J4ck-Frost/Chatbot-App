@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chatbot-app
+  labels:
+    app: chatbot-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: chatbot-app
+  template:
+    metadata:
+      labels:
+        app: chatbot-app
+    spec:
+      containers:
+        - name: chatbot-app
+          image: striking-figure-474817-a3/team1-ai-repo/chatbot-app:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: BACKEND_URL
+              value: "http://qwen-unified-service:8000"
+            - name: PORT
+              value: "7861"
+          ports:
+            - containerPort: 7861
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 7861
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 7861
+            initialDelaySeconds: 30
+            periodSeconds: 20

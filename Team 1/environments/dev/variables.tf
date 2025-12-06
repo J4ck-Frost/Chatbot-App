@@ -13,7 +13,7 @@ variable "project_name" {
 variable "region" {
   description = "Primary region for resources (GCP)"
   type        = string
-  default     = "us-central1"
+  default     = "asia-southeast1"
 }
 
 # VPC / networking
@@ -78,7 +78,6 @@ variable "cpu_pool_machine_type" {
 variable "cpu_pool_disk_size" {
   description = "Disk size (GB) for CPU node pool"
   type        = number
-  default     = 10
 }
 
 variable "cpu_node_count" {
@@ -121,13 +120,12 @@ variable "gpu_node_count" {
 variable "gpu_machine_type" {
   description = "Machine type for GPU nodes"
   type        = string
-  default     = "n1-standard-1"
+  default     = "n1-standard-4"
 }
 
 variable "gpu_disk_size" {
   description = "Disk size (GB) for GPU nodes"
   type        = number
-  default     = 15
 }
 
 variable "gpu_type" {

@@ -1,39 +1,41 @@
 ---
-- name: Ray AI Model Deployment Pipeline
+- name: FULL STACK DEPLOYMENT (AI + APP)
   hosts: localhost
   gather_facts: false
   vars_files:
     - group_vars/all.yml
   
   pre_tasks:
-    - name: Display deployment configuration
+    - name: Display Configuration
       ansible.builtin.debug:
-        msg: |
-          🚀 Starting simplified Ray AI deployment...
-          
-          Environment: {{ environment }}
-          Namespace: {{ namespace }}
-          
-          Prerequisites:
-          - kubectl is configured 
-          - Kubernetes cluster is accessible
+        msg: "🚀 Deploying {{ environment }} stack. Namespace: {{ namespace }}"
 
   tasks:
-    - name: Prepare Docker Environment
-      include_role:
-        name: docker
-      tags: ['docker', 'prepare']
-
-    # - name: Deploy to Kubernetes
-    #   include_role:
-    #     name: k8s
-    #   tags: ['kubernetes', 'deploy']
+    # ----------------------------------------------------------------
+    # BƯỚC 1: HẠ TẦNG (Lấy thông tin Project ID, Repo URL...)
+    # ----------------------------------------------------------------
     - name: Apply Terraform Infrastructure
       include_role:
         name: terraform
-      tags: ['terraform', 'infrastructure']
+      tags: ['infra', 'terraform']
 
-    - name: Deploy Test Application
+    # ----------------------------------------------------------------
+    # BƯỚC 2: AI MODEL (Build -> Deploy)
+    # ----------------------------------------------------------------
+    # - name: Build Qwen AI Image (Cloud Build)
+    #   include_role:
+    #     name: docker_ai_build
+    #   tags: ['ai', 'build']
+
+    - name: Deploy Ray Cluster & Qwen Model
       include_role:
-        name: app-deploy
-      tags: ['app-deploy', 'deploy']
+        name: k8s
+      tags: ['ai', 'deploy']
+
+    # ----------------------------------------------------------------
+    # BƯỚC 3: WEB APP (Build -> Deploy Helm + Kết nối AI)
+    # ----------------------------------------------------------------
+    - name: Build & Deploy Web App
+      include_role:
+        name: chatbot-app-deploy
+      tags: ['app', 'deploy']

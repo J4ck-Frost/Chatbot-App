@@ -1,0 +1,19 @@
+---
+- name: Set facts from Terraform
+  set_fact:
+    gcp_project_id: "{{ tf_outputs.project_id.value }}"
+    # Xóa https:// ở đầu URL nếu có
+    gcp_repo_url: "{{ tf_outputs.artifact_registry_url.value | regex_replace('^https://', '') }}"
+
+- name: Build & Push Qwen AI Image (Cloud Build)
+  ansible.builtin.command: >
+    gcloud builds submit "{{ ai_source_path }}"
+    --tag "{{ gcp_repo_url }}/{{ ai_image_name }}:{{ ai_image_tag }}"
+    --project "{{ gcp_project_id }}"
+    --quiet
+  register: ai_build_out
+  changed_when: true
+
+- name: Display AI Image Status
+  ansible.builtin.debug:
+    msg: "✅ AI Image Built: {{ gcp_repo_url }}/{{ ai_image_name }}:{{ ai_image_tag }}"

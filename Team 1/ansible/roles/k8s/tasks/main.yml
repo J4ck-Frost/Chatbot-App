@@ -1,15 +1,36 @@
 ---
-- name: Check if kubectl is available
-  ansible.builtin.command: kubectl version --client
-  register: kubectl_version
+# ----------------------------------------------------------------
+# STEP 0: AUTHENTICATION (IMPORTANT - FIX LOCALHOST:8080 ISSUE)
+# ----------------------------------------------------------------
+- name: Get GKE credentials
+  ansible.builtin.command: >
+    gcloud container clusters get-credentials {{ tf_outputs.kubernetes_cluster_name.value }}
+    --zone {{ tf_outputs.region.value }}-a
+    --project {{ tf_outputs.project_id.value }}
   changed_when: false
 
-- name: Set KUBECONFIG environment variable
-  ansible.builtin.set_fact:
-    ansible_env: "{{ ansible_env | default({}) | combine({'KUBECONFIG': kubeconfig_path}) }}"
-  when: kubeconfig_path is defined
+# ----------------------------------------------------------------
+# STEP 1: SETUP ENVIRONMENT (OPERATOR & SECRET)
+# ----------------------------------------------------------------
 
-- name: Create Ray dashboard secret (if password needed)
+# 1. Add KubeRay Helm Repository
+- name: Add KubeRay Helm repository
+  kubernetes.core.helm_repository:
+    name: kuberay
+    repo_url: "https://ray-project.github.io/kuberay-helm/"
+
+# 2. Install KubeRay Operator via Helm
+- name: Install KubeRay Operator via Helm
+  kubernetes.core.helm:
+    name: kuberay-operator
+    chart_ref: kuberay/kuberay-operator
+    release_namespace: "{{ namespace }}"
+    create_namespace: true
+    wait: true
+    kubeconfig: "{{ kubeconfig_path }}"
+
+# 3. Create Secret for Ray Dashboard
+- name: Create Secret for Ray Dashboard
   kubernetes.core.k8s:
     state: present
     definition:
@@ -19,52 +40,32 @@
         name: ray-dashboard-secret
         namespace: "{{ namespace }}"
       type: Opaque
-      data:
-        password: "{{ 'ray-dashboard-123' | b64encode }}"
-  ignore_errors: yes
+      stringData:
+        password: "password123"
+    kubeconfig: "{{ kubeconfig_path }}"
 
-# Step 1: Deploy Ray RBAC (ServiceAccount, Role, RoleBinding)
+# ----------------------------------------------------------------
+# STEP 2: RAY INFRASTRUCTURE (CLUSTER)
+# ----------------------------------------------------------------
+
+# 4. Deploy Ray RBAC
 - name: Deploy Ray RBAC
   kubernetes.core.k8s:
     state: present
     src: "{{ playbook_dir }}/../ray-deployment/security/ray-rbac.yaml"
     namespace: "{{ namespace }}"
+    kubeconfig: "{{ kubeconfig_path }}"
 
-# Step 2: Create ConfigMap for Ray Serve AI model code
-- name: Create ConfigMap for Ray Serve script
-  kubernetes.core.k8s:
-    state: present
-    definition:
-      apiVersion: v1
-      kind: ConfigMap
-      metadata:
-        name: phi3-serve-script
-        namespace: "{{ namespace }}"
-      data:
-        phi3_serve.py: "{{ lookup('file', playbook_dir + '/../ai-model/ray-serve/phi3_serve.py') }}"
-
-# Step 3: Deploy Ray Cluster first
-- name: Deploy Ray Cluster
+# 5. Deploy Ray Cluster
+- name: Deploy Ray Cluster (Qwen Image)
   kubernetes.core.k8s:
     state: present
     src: "{{ playbook_dir }}/../ray-deployment/cluster/ray-cluster.yaml"
     namespace: "{{ namespace }}"
+    kubeconfig: "{{ kubeconfig_path }}"
 
-- name: Wait for Ray Cluster head to be ready
-  kubernetes.core.k8s_info:
-    api_version: v1
-    kind: Pod
-    namespace: "{{ namespace }}"
-    label_selectors:
-      - "ray.io/cluster={{ ray_cluster_name }}"
-      - "ray.io/node-type=head"
-    wait: true
-    wait_condition:
-      type: Ready
-      status: "True"
-    wait_timeout: "{{ wait_timeout }}"
-
-- name: Wait for Ray Cluster workers to be ready
+# 6. Wait for Worker Nodes to be Ready
+- name: Wait for Ray Worker Nodes to be Ready
   kubernetes.core.k8s_info:
     api_version: v1
     kind: Pod
@@ -77,98 +78,43 @@
       type: Ready
       status: "True"
     wait_timeout: "{{ wait_timeout }}"
+    kubeconfig: "{{ kubeconfig_path }}"
 
-- name: Verify Ray head service is available
+# ----------------------------------------------------------------
+# STEP 3: DEPLOY QWEN MODEL
+# ----------------------------------------------------------------
+
+# 7. Create ConfigMap with Qwen Code
+- name: Create ConfigMap with Qwen code
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: qwen-serve-script
+        namespace: "{{ namespace }}"
+      data:
+        qwen_serve.py: "{{ lookup('file', ai_source_path + '/ray-serve/qwen_serve.py') }}"
+    kubeconfig: "{{ kubeconfig_path }}"
+
+# 8. Deploy Qwen Ray Serve Deployment
+- name: Deploy Qwen Ray Serve
+  kubernetes.core.k8s:
+    state: present
+    src: "{{ ai_source_path }}/ray-serve/qwen-ray-serve-deployment.yaml"
+    namespace: "{{ namespace }}"
+    kubeconfig: "{{ kubeconfig_path }}"
+
+# 9. Wait for Qwen Service to be Ready
+- name: Wait for Qwen Service to be Ready
   kubernetes.core.k8s_info:
     api_version: v1
     kind: Service
-    name: "{{ ray_head_service }}"
+    name: "{{ ai_service_name }}"
     namespace: "{{ namespace }}"
-  register: ray_head_service_result
-  retries: "{{ health_check_retries }}"
+    kubeconfig: "{{ kubeconfig_path }}"
+  register: ai_svc
+  until: ai_svc.resources | length > 0
+  retries: 20
   delay: 10
-  until: ray_head_service_result.resources | length > 0
-
-# Step 4: Deploy Ray Client after Ray Cluster is ready
-- name: Deploy Ray Client Pod
-  kubernetes.core.k8s:
-    state: present
-    src: "{{ playbook_dir }}/../ray-deployment/cluster/ray-client-pod.yaml"
-    namespace: "{{ namespace }}"
-
-- name: Wait for Ray Client pod to be ready
-  kubernetes.core.k8s_info:
-    api_version: v1
-    kind: Pod
-    name: ray-client
-    namespace: "{{ namespace }}"
-    wait: true
-    wait_condition:
-      type: Ready
-      status: "True"
-    wait_timeout: "{{ wait_timeout }}"
-
-# Step 5: Deploy Ray Serve (AI Model) after Ray cluster and client are ready
-- name: Deploy Ray Serve (AI Model Server)
-  kubernetes.core.k8s:
-    state: present
-    src: "{{ playbook_dir }}/../ai-model/ray-serve/phi3-ray-serve-deployment.yaml"
-    namespace: "{{ namespace }}"
-
-- name: Wait for Ray Serve deployment to be ready
-  kubernetes.core.k8s_info:
-    api_version: apps/v1
-    kind: Deployment
-    name: phi3-ray-serve
-    namespace: "{{ namespace }}"
-    wait: true
-    wait_condition:
-      type: Available
-      status: "True"
-    wait_timeout: "{{ wait_timeout }}"
-
-# Step 6: Verify deployment status
-- name: Get all pods in namespace
-  kubernetes.core.k8s_info:
-    api_version: v1
-    kind: Pod
-    namespace: "{{ namespace }}"
-  register: all_pods
-
-- name: Display deployment status
-  ansible.builtin.debug:
-    msg: |
-      🎉 Ray AI Deployment Complete! 
-      
-      Ray Cluster: {{ ray_cluster_name }}
-      Namespace: {{ namespace }}
-      
-      Components deployed:
-      ✓ Ray RBAC (ServiceAccount, Role, RoleBinding)
-      ✓ Ray Cluster (head + workers)
-      ✓ Ray Client (development pod)
-      ✓ Ray Serve (AI model: Phi3)
-      
-      Pods Status:
-      {% for pod in all_pods.resources %}
-      - {{ pod.metadata.name }}: {{ pod.status.phase }}
-      {% endfor %}
-      
-      Access your AI model:
-      
-      # Check Ray dashboard
-      kubectl port-forward svc/{{ ray_head_service }} {{ ray_dashboard_port }}:{{ ray_dashboard_port }} -n {{ namespace }}
-      # Open: http://localhost:{{ ray_dashboard_port }}
-      
-      # Access Ray Serve AI endpoints (via port-forward to pod)
-      kubectl port-forward deployment/phi3-ray-serve 8000:8000 -n {{ namespace }}
-      # API: http://localhost:8000
-      
-      # Access Ray Client for development
-      kubectl exec -it ray-client -- python -n {{ namespace }}
-      
-      # Check logs
-      kubectl logs -l app=phi3-ray-serve -n {{ namespace }}
-      
-      # Test AI model
-      curl -X POST http://localhost:8000/chat -H "Content-Type: application/json" -d '{"message": "Hello AI!"}'
