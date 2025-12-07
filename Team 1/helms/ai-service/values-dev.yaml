@@ -1,0 +1,7 @@
+# ...
+    containers:
+    - name: qwen-serve
+      # THAY DÒNG CŨ BẰNG DÒNG NÀY:
+      image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+    pythonCode: ""
+# ...

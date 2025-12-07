@@ -1,4 +1,4 @@
-name: Team 1 CI/CD - Build & Deploy to GKE
+name: Team 1 CI/CD - Chatbot App
 
 on:
   push:
@@ -7,13 +7,27 @@ on:
   workflow_dispatch:
 
 env:
+  # Cấu hình chung
+  PROJECT_ID: ${{ secrets.TEAM1_GCP_PROJECT }}
+  REGION: asia-southeast1
+  GAR_REPO: asia-southeast1-docker.pkg.dev/${{ secrets.TEAM1_GCP_PROJECT }}/team1-ai-repo
+  
+  # Tên Image và App
+  IMAGE_NAME: chatbot-app
   IMAGE_TAG: ${{ github.sha }}
+  
+  # Đường dẫn source code (Sửa lại nếu thư mục của bạn khác)
+  SOURCE_PATH: "./Team 1/chatbot-app"
+  HELM_PATH: "./Team 1/helms/chatbot-app"
 
 jobs:
-  build-and-deploy:
+  #JOB 1: BUILD & PUSH DOCKER IMAGE
+  build-push:
     runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ github.sha }} 
     steps:
-      - name: Checkout
+      - name: Checkout Code
         uses: actions/checkout@v4
         with:
           ref: team-1-branch
@@ -23,44 +37,60 @@ jobs:
         with:
           credentials_json: ${{ secrets.TEAM1_GCP_SA_KEY }}
 
-      - name: Configure gcloud project
-        uses: google-github-actions/setup-gcloud@v1
-        with:
-          project_id: ${{ secrets.TEAM1_GCP_PROJECT }}
-
-      - name: Configure Docker auth for Artifact Registry
+      - name: Configure Docker for Artifact Registry
         run: |
           gcloud auth configure-docker asia-southeast1-docker.pkg.dev
 
-      - name: Build Docker image
+      - name: Build and Push Docker Image
         run: |
-          IMAGE="asia-southeast1-docker.pkg.dev/new-devopts-k2-advance/app-repo/postgres-test-app:latest"
-          docker build -t $IMAGE "./Team 1/test-app"
+          FULL_IMAGE_NAME="$GAR_REPO/$IMAGE_NAME:$IMAGE_TAG"
+          
+          echo "Building $FULL_IMAGE_NAME..."
+          docker build -t "$FULL_IMAGE_NAME" "$SOURCE_PATH"
+          
+          echo "Pushing..."
+          docker push "$FULL_IMAGE_NAME"
 
-      - name: Push Docker image
-        run: |
-          IMAGE="asia-southeast1-docker.pkg.dev/new-devopts-k2-advance/app-repo/postgres-test-app:latest"
-          docker push $IMAGE
+  # JOB 2: DEPLOY TO GKE (Chạy sau khi Build xong)
+  deploy:
+    needs: build-push  # Quan trọng: Đợi job trên xong mới chạy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          ref: team-1-branch
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.TEAM1_GCP_SA_KEY }}
 
       - name: Install Helm
         uses: azure/setup-helm@v3
-        with:
-          version: v3.12.0
 
-      - name: Get GKE credentials
+      - name: Install GKE Auth Plugin
         uses: google-github-actions/get-gke-credentials@v1
         with:
           cluster_name: ${{ secrets.TEAM1_GKE_CLUSTER }}
           location: ${{ secrets.TEAM1_GKE_LOCATION }}
           project_id: ${{ secrets.TEAM1_GCP_PROJECT }}
 
-      - name: Helm upgrade/install
+      - name: Deploy Chatbot App using Helm
+        env:
+          FULL_IMAGE_NAME: ${{ env.GAR_REPO }}/${{ env.IMAGE_NAME }}
         run: |
-          IMAGE="asia-southeast1-docker.pkg.dev/new-devopts-k2-advance/app-repo/postgres-test-app:latest"
-          helm upgrade "postgres-test-app" "Team 1/helms/test-app" \
+          # Deploy App (Frontend)
+          helm upgrade --install chatbot-app "$HELM_PATH" \
             -n "${{ secrets.TEAM1_K8S_NAMESPACE }}" \
-            -f "Team 1/helms/test-app/values-dev.yaml"
+            --set image.repository="$FULL_IMAGE_NAME" \
+            --set image.tag="$IMAGE_TAG" \
+            --wait \
+            --timeout 5m
 
-      - name: Wait for rollout
-        run: |
-          kubectl rollout status deployment/postgres-test-app -n "${{ secrets.TEAM1_K8S_NAMESPACE }}" --timeout=5m
+      # [TÙY CHỌN] Nếu bạn muốn deploy luôn con Model Service (Service AI)
+      # Giả sử Model Service dùng image cố định hoặc hiếm khi thay đổi
+      # - name: Deploy AI Model Service
+      #   run: |
+      #     helm upgrade --install qwen-service "./Team 1/helms/ai-service" \
+      #       -n "${{ secrets.TEAM1_K8S_NAMESPACE }}"

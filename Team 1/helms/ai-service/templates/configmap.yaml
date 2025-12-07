@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: qwen-serve-script
+  namespace: {{ .Release.Namespace }}
+data:
+  # Thay vì dùng .Files.Get, ta dùng .Values.pythonCode
+  qwen_serve.py: |
+{{ .Values.pythonCode | indent 4 }}

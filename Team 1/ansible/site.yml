@@ -22,10 +22,10 @@
     # ----------------------------------------------------------------
     # BƯỚC 2: AI MODEL (Build -> Deploy)
     # ----------------------------------------------------------------
-    # - name: Build Qwen AI Image (Cloud Build)
-    #   include_role:
-    #     name: docker_ai_build
-    #   tags: ['ai', 'build']
+    - name: Build Qwen AI Image (Cloud Build)
+      include_role:
+        name: docker_ai_build
+      tags: ['ai', 'build']
 
     - name: Deploy Ray Cluster & Qwen Model
       include_role:

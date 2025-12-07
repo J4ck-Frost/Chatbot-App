@@ -77,4 +77,26 @@ resource "google_storage_bucket_iam_member" "gcs_access_binding" {
   ]
 }
 
+# 1. Tạo Service Account cho CI/CD
+resource "google_service_account" "cicd_sa" {
+  account_id   = "github-actions-sa"
+  display_name = "Service Account for GitHub Actions CI/CD"
+  description  = "Dùng để Push Image và Deploy Helm"
+  project      = var.project_id
+}
+
+# 2. Cấp quyền Push Image vào Artifact Registry
+resource "google_project_iam_member" "cicd_ar_writer" {
+  project = var.project_id
+  role    = "roles/artifactregistry.writer" # Quyền này cho phép Push image
+  member  = "serviceAccount:${google_service_account.cicd_sa.email}"
+}
+
+# 3. Cấp quyền Deploy lên GKE
+resource "google_project_iam_member" "cicd_gke_developer" {
+  project = var.project_id
+  role    = "roles/container.developer"   # Quyền này cho phép lấy credentials và update deployment
+  member  = "serviceAccount:${google_service_account.cicd_sa.email}"
+}
+
 

@@ -10,5 +10,5 @@ terraform {
 provider "google" {
   project = var.project_id
   region  = var.region
-  credentials = file("/mnt/d/Terraform/terraform-key.json")
+  credentials = file("D:/Terraform/terraform-key.json")
 }

@@ -44,77 +44,22 @@
         password: "password123"
     kubeconfig: "{{ kubeconfig_path }}"
 
+
 # ----------------------------------------------------------------
-# STEP 2: RAY INFRASTRUCTURE (CLUSTER)
+# STEP 2: DEPLOY AI STACK (RBAC + CLUSTER + MODEL + SERVICE)
 # ----------------------------------------------------------------
-
-# 4. Deploy Ray RBAC
-- name: Deploy Ray RBAC
-  kubernetes.core.k8s:
-    state: present
-    src: "{{ playbook_dir }}/../ray-deployment/security/ray-rbac.yaml"
-    namespace: "{{ namespace }}"
-    kubeconfig: "{{ kubeconfig_path }}"
-
-# 5. Deploy Ray Cluster
-- name: Deploy Ray Cluster (Qwen Image)
-  kubernetes.core.k8s:
-    state: present
-    src: "{{ playbook_dir }}/../ray-deployment/cluster/ray-cluster.yaml"
-    namespace: "{{ namespace }}"
-    kubeconfig: "{{ kubeconfig_path }}"
-
-# 6. Wait for Worker Nodes to be Ready
-- name: Wait for Ray Worker Nodes to be Ready
-  kubernetes.core.k8s_info:
-    api_version: v1
-    kind: Pod
-    namespace: "{{ namespace }}"
-    label_selectors:
-      - "ray.io/cluster={{ ray_cluster_name }}"
-      - "ray.io/node-type=worker"
+- name: Deploy AI Service via Helm
+  kubernetes.core.helm:
+    name: qwen-service
+    chart_ref: "{{ playbook_dir }}/../helms/ai-service"
+    release_namespace: "{{ namespace }}"
+    create_namespace: true
     wait: true
-    wait_condition:
-      type: Ready
-      status: "True"
-    wait_timeout: "{{ wait_timeout }}"
     kubeconfig: "{{ kubeconfig_path }}"
-
-# ----------------------------------------------------------------
-# STEP 3: DEPLOY QWEN MODEL
-# ----------------------------------------------------------------
-
-# 7. Create ConfigMap with Qwen Code
-- name: Create ConfigMap with Qwen code
-  kubernetes.core.k8s:
-    state: present
-    definition:
-      apiVersion: v1
-      kind: ConfigMap
-      metadata:
-        name: qwen-serve-script
-        namespace: "{{ namespace }}"
-      data:
-        qwen_serve.py: "{{ lookup('file', ai_source_path + '/ray-serve/qwen_serve.py') }}"
-    kubeconfig: "{{ kubeconfig_path }}"
-
-# 8. Deploy Qwen Ray Serve Deployment
-- name: Deploy Qwen Ray Serve
-  kubernetes.core.k8s:
-    state: present
-    src: "{{ ai_source_path }}/ray-serve/qwen-ray-serve-deployment.yaml"
-    namespace: "{{ namespace }}"
-    kubeconfig: "{{ kubeconfig_path }}"
-
-# 9. Wait for Qwen Service to be Ready
-- name: Wait for Qwen Service to be Ready
-  kubernetes.core.k8s_info:
-    api_version: v1
-    kind: Service
-    name: "{{ ai_service_name }}"
-    namespace: "{{ namespace }}"
-    kubeconfig: "{{ kubeconfig_path }}"
-  register: ai_svc
-  until: ai_svc.resources | length > 0
-  retries: 20
-  delay: 10
+    values:
+      image:
+        repository: "{{ gcp_repo_url }}/{{ ai_image_name }}"
+        tag: "{{ ai_image_tag }}"
+      
+      # [TUYỆT CHIÊU] Ansible đọc file thật, rồi nhét chữ vào biến pythonCode của Helm
+      pythonCode: "{{ lookup('file', ai_source_path + '/ray-serve/qwen_serve.py') }}"

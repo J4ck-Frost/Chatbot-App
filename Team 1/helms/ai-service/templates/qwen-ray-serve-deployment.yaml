@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qwen-ray-serve
+  namespace: default
+  labels:
+    app: qwen-ray-serve
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: qwen-ray-serve
+  template:
+    metadata:
+      labels:
+        app: qwen-ray-serve
+      # [QUAN TRỌNG] Dòng này PHẢI nằm ở đây (trong template)
+      # Khi configmap đổi -> hash đổi -> template đổi -> K8s restart Pod
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      tolerations:
+      - key: "cloud.google.com/gke-preemptible"
+        operator: "Equal"
+        value: "true"
+        effect: "NoSchedule"
+      nodeSelector:
+        cloud.google.com/gke-nodepool: gpu-pool
+      containers:
+      - name: qwen-serve
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: Always
+        command: ["/bin/bash", "-c"]
+        args:
+          - |
+            echo "Starting Qwen2.5 Ray Serve..."
+            python /app/ray-serve/qwen_serve.py
+        
+        # [ĐÚNG RỒI] Phần Volume Mount này chuẩn
+        volumeMounts:
+        - name: code-volume
+          mountPath: /app/ray-serve/qwen_serve.py
+          subPath: qwen_serve.py
+        
+        ports:
+        - containerPort: 8000
+          name: serve
+        env:
+        - name: RAY_ADDRESS
+          value: "ray://ray-cluster-head-svc:10001"
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        - name: RAY_SERVE_ENABLE_EXPERIMENTAL_STREAMING
+          value: "1"
+        resources:
+          requests:
+            cpu: "2"
+            memory: "8Gi"
+            nvidia.com/gpu: 1
+          limits:
+            cpu: "4"
+            memory: "16Gi"
+            nvidia.com/gpu: 1
+      volumes:
+      - name: code-volume
+        configMap:
+          name: qwen-serve-script
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: qwen-unified-service
+  namespace: default
+  labels:
+    app: qwen-ray-serve
+  # [ĐÃ XÓA] Không để annotation checksum ở đây!
+spec:
+  type: LoadBalancer
+  selector:
+    ray.io/cluster: ray-cluster
+    ray.io/node-type: head
+  ports:
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP
+    name: api

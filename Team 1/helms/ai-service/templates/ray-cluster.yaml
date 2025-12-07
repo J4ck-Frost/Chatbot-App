@@ -1,0 +1,93 @@
+apiVersion: ray.io/v1
+kind: RayCluster
+metadata:
+  name: ray-cluster
+  namespace: default
+spec:
+  rayVersion: '2.52.0'
+  enableInTreeAutoscaling: true
+  autoscalerOptions:
+    upscalingMode: Default
+    idleTimeoutSeconds: 60
+    resources:
+      limits:
+        cpu: "200m"
+        memory: "512Mi"
+      requests:
+        cpu: "100m"
+        memory: "256Mi"
+  headGroupSpec:
+    rayStartParams:
+      dashboard-host: '0.0.0.0'
+      metrics-export-port: '8080'
+      ray-client-server-port: '10001'
+      num-cpus: '0'
+    template:
+      spec:
+        nodeSelector:
+          # Head chạy trên CPU pool là OK
+          cloud.google.com/gke-nodepool: cpu-pool
+        containers:
+        - name: ray-head
+          # [SỬA]: Head cũng phải dùng image mới để đồng bộ môi trường Python
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          ports:
+          - containerPort: 6379
+            name: gcs-server
+          - containerPort: 8265
+            name: dashboard
+          - containerPort: 10001
+            name: client
+          - containerPort: 8080
+            name: metrics
+          - containerPort: 8000
+            name: serve
+          resources:
+            limits:
+              cpu: "1"      # Tăng nhẹ cho Head node ổn định
+              memory: "4Gi"
+            requests:
+              cpu: "500m"
+              memory: "2Gi"
+          env:
+          - name: RAY_DISABLE_IMPORT_WARNING
+            value: "1"
+          - name: RAY_DASHBOARD_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: ray-dashboard-secret
+                key: password
+  workerGroupSpecs:
+  - groupName: gpu-workers
+    replicas: 1
+    minReplicas: 1
+    maxReplicas: 1
+    rayStartParams:
+      num-cpus: "2"
+      num-gpus: "1"
+    template:
+      spec:
+        tolerations:
+        - key: "nvidia.com/gpu"
+          operator: "Equal"
+          value: "present"
+          effect: "NoSchedule"
+        nodeSelector:
+          cloud.google.com/gke-nodepool: gpu-pool
+        containers:
+        - name: ray-worker
+          # [SỬA]: Worker chạy model Qwen
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          resources:
+            # [QUAN TRỌNG]: Qwen 7B cần nhiều RAM hơn Phi-3
+            limits:
+              nvidia.com/gpu: 1
+              cpu: "4"       # Tăng CPU để xử lý tiền xử lý (tokenize)
+              memory: "16Gi" # Tăng lên 16GB RAM hệ thống (4GB là crash ngay)
+            requests:
+              nvidia.com/gpu: 1
+              cpu: "2"
+              memory: "8Gi"
+          env:
+          - name: RAY_DISABLE_IMPORT_WARNING
+            value: "1"

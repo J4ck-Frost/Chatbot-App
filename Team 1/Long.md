@@ -11,4 +11,4 @@ terraform state rm module.artifact_registry.google_artifact_registry_repository_
 gcloud container clusters get-credentials gke-cluster-dev --zone=asia-southeast1-a
 
 
-
+kubectl get svc

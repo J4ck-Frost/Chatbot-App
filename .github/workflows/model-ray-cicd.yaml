@@ -1,0 +1,66 @@
+name: CI/CD - AI Model Service
+
+on:
+  push:
+    branches: [ "team-1-branch" ]
+    paths:
+      - 'Team 1/ai-model/**'           # Code model thay đổi
+      - 'Team 1/helms/ai-service/**'   # Hoặc Helm chart thay đổi
+  workflow_dispatch:
+
+env:
+  PROJECT_ID: ${{ secrets.TEAM1_GCP_PROJECT }}
+  GAR_REPO: asia-southeast1-docker.pkg.dev/${{ secrets.TEAM1_GCP_PROJECT }}/team1-ai-repo
+  IMAGE_NAME: qwen2-serve
+  
+  # Đường dẫn
+  SOURCE_PATH: "./Team 1/ai-model"
+  HELM_PATH: "./Team 1/helms/ai-service"
+
+jobs:
+  build-deploy-model:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          ref: team-1-branch
+
+      # --- 1. Auth & Setup (Giữ nguyên như cũ) ---
+      - name: Auth GCP
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.TEAM1_GCP_SA_KEY }}
+
+      - name: Configure Docker
+        run: gcloud auth configure-docker asia-southeast1-docker.pkg.dev
+
+      - name: Get GKE Credentials
+        uses: google-github-actions/get-gke-credentials@v1
+        with:
+          cluster_name: ${{ secrets.TEAM1_GKE_CLUSTER }}
+          location: ${{ secrets.TEAM1_GKE_LOCATION }}
+
+      # --- 2. Build & Push Image ---
+      - name: Build & Push
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          FULL_IMAGE="$GAR_REPO/$IMAGE_NAME:$IMAGE_TAG"
+          docker build -t "$FULL_IMAGE" "$SOURCE_PATH"
+          docker push "$FULL_IMAGE"
+
+      # --- 3. Deploy bằng HELM (Thay vì kubectl apply thủ công) ---
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+
+      - name: Deploy Model Service
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          # Helm sẽ tự động cập nhật cả RayCluster lẫn Deployment
+          helm upgrade --install qwen-service "$HELM_PATH" \
+            -n "${{ secrets.TEAM1_K8S_NAMESPACE }}" \
+            --set image.repository="$GAR_REPO/$IMAGE_NAME" \
+            --set image.tag="$IMAGE_TAG" \
+            --wait --timeout 10m
