@@ -2,17 +2,16 @@ name: CI/CD - Chatbot App (Helm)
 
 on:
   push:
-    branches: [ "team-1-branch" ]
+    branches: [ "team-1/long_ngo" ] # Chạy khi push vào nhánh này
     paths:
-      - 'Team 1/chatbot-app/**'        # Code thay đổi
-      - 'Team 1/helms/chatbot-app/**'  # Chart thay đổi
+      - 'Team 1/chatbot-app/**'
+      - 'Team 1/helms/chatbot-app/**'
   workflow_dispatch:
 
 env:
   PROJECT_ID: ${{ secrets.TEAM1_GCP_PROJECT }}
   GAR_REPO: asia-southeast1-docker.pkg.dev/${{ secrets.TEAM1_GCP_PROJECT }}/team1-ai-repo
   IMAGE_NAME: chatbot-app
-  # Đường dẫn tới Dockerfile và Helm Chart (Dựa theo ảnh bạn gửi)
   SOURCE_PATH: "./Team 1/chatbot-app"
   HELM_PATH: "./Team 1/helms/chatbot-app"
 
@@ -22,8 +21,7 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
-        with:
-          ref: team-1-branch
+        # [ĐÃ SỬA] Xóa 'ref: team-1-branch' để nó checkout đúng code mới nhất
 
       # --- 1. Auth & Setup ---
       - name: Auth GCP
@@ -58,7 +56,6 @@ jobs:
         env:
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          # Nâng cấp release tên là 'chatbot-app'
           helm upgrade --install chatbot-app "$HELM_PATH" \
             -n "${{ secrets.TEAM1_K8S_NAMESPACE }}" \
             --set image.repository="$GAR_REPO/$IMAGE_NAME" \

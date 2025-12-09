@@ -189,5 +189,5 @@ variable "db_password" {
 variable "app_name" {
   description = "Application name"
   type        = string
-  default     = "postgres-test-app"
+  default     = "chatbot-app"
 }

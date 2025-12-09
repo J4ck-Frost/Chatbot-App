@@ -2,20 +2,20 @@ name: CI/CD - AI Model Service
 
 on:
   push:
-    branches: [ "team-1-branch" ]
+    branches: [ "team-1/long_ngo" ]
     paths:
-      - 'Team 1/ai-model/**'           # Code model thay đổi
-      - 'Team 1/helms/ai-service/**'   # Hoặc Helm chart thay đổi
+      - 'Team 1/ai-model/**'
+      - 'Team 1/helms/ai-service/**'
   workflow_dispatch:
 
 env:
   PROJECT_ID: ${{ secrets.TEAM1_GCP_PROJECT }}
   GAR_REPO: asia-southeast1-docker.pkg.dev/${{ secrets.TEAM1_GCP_PROJECT }}/team1-ai-repo
   IMAGE_NAME: qwen2-serve
-  
-  # Đường dẫn
   SOURCE_PATH: "./Team 1/ai-model"
   HELM_PATH: "./Team 1/helms/ai-service"
+  # [QUAN TRỌNG] Đường dẫn file python để bơm vào Helm
+  PYTHON_SCRIPT_PATH: "Team 1/ai-model/ray-serve/qwen_serve.py"
 
 jobs:
   build-deploy-model:
@@ -23,10 +23,9 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
-        with:
-          ref: team-1-branch
+        # [ĐÃ SỬA] Xóa 'ref' để lấy code mới nhất
 
-      # --- 1. Auth & Setup (Giữ nguyên như cũ) ---
+      # --- 1. Auth & Setup ---
       - name: Auth GCP
         uses: google-github-actions/auth@v1
         with:
@@ -50,7 +49,7 @@ jobs:
           docker build -t "$FULL_IMAGE" "$SOURCE_PATH"
           docker push "$FULL_IMAGE"
 
-      # --- 3. Deploy bằng HELM (Thay vì kubectl apply thủ công) ---
+      # --- 3. Deploy HELM ---
       - name: Install Helm
         uses: azure/setup-helm@v3
 
@@ -58,9 +57,12 @@ jobs:
         env:
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          # Helm sẽ tự động cập nhật cả RayCluster lẫn Deployment
+          # [QUAN TRỌNG] Dùng --set-file để bơm nội dung file code vào biến pythonCode
+          # Đây là cách thay thế cho ansible lookup('file')
+          
           helm upgrade --install qwen-service "$HELM_PATH" \
             -n "${{ secrets.TEAM1_K8S_NAMESPACE }}" \
             --set image.repository="$GAR_REPO/$IMAGE_NAME" \
             --set image.tag="$IMAGE_TAG" \
+            --set-file pythonCode="$PYTHON_SCRIPT_PATH" \
             --wait --timeout 10m

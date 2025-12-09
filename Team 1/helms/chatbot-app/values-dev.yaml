@@ -1,25 +1,33 @@
-replicaCount: 1
+    replicaCount: 1
 
-app:
-  name: chatbot-app
-  image:
-    repository: asia-southeast1-docker.pkg.dev/striking-figure-474817-a3/team1-ai-repo/chatbot-app
-    tag: latest
-    pullPolicy: IfNotPresent
-  containerPort: 7860
-  livenessProbe:
-    path: /
-    port: 7860
-    initialDelaySeconds: 20
-    periodSeconds: 10
+    app:
+      name: chatbot-app
+      image:
+        repository: asia-southeast1-docker.pkg.dev/striking-figure-474817-a3/team1-ai-repo/chatbot-app
+        tag: latest
+        pullPolicy: Always
+      containerPort: 3000
+      livenessProbe:
+        path: /
+        port: 3000
+        initialDelaySeconds: 45
+        periodSeconds: 10
 
-service:
-  type: LoadBalancer
-  port: 80
+    cloudSqlProxy:
+      image:
+        repository: gcr.io/cloudsql-docker/gce-proxy
+        tag: "1.37.10"
+      projectId: striking-figure-474817-a3
+      region: asia-southeast1
+      instanceName: instance-dev
+      resources:
+        limits:
+          cpu: 100m
+          memory: 128Mi
 
-serviceAccountName: instance-dev-ksa
-fullnameOverride: chatbot-app
+    serviceAccountName: instance-dev-ksa
 
-env:
-  AI_API_URL: "http://qwen-unified-service:8000/chat"
-  GCS_BUCKET_NAME: "app-bucket-dev-striking-figure-474817-a3"
+    service:
+      name: chatbot-app-service
+      type: LoadBalancer
+      port: 80

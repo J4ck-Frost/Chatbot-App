@@ -101,26 +101,9 @@ module "sql" {
   app_service_account_email = google_service_account.app-gsa.email
 }
 
-# Create test app .env file
-resource "local_file" "app_env" {
-  filename = "${path.module}/../../test-app/.env"
-  content  = <<EOT
-    PORT=3000
-    DB_HOST=${module.sql.instance_ip}
-    DB_PORT=${module.sql.database_port}
-    DB_NAME=${module.sql.database_name}
-    DB_IAM_USER=${trimsuffix(google_service_account.app-gsa.email, ".gserviceaccount.com")}
-    GCS_BUCKET_NAME=${module.app_bucket.bucket_name}
-    PROJECT_ID=${var.project_id}
-    REGION=${var.region}
-    INSTANCE_NAME=${var.instance_name}
-    DB_SSL_MODE=disable
-  EOT
-}
-
 # Generate Helm values.yaml dynamically
 resource "local_file" "helm_values" {
-  filename = "${path.module}/../../helms/test-app/values-dev.yaml"
+  filename = "${path.module}/../../helms/chatbot-app/values-dev.yaml"
   content  = <<EOT
     replicaCount: 1
 

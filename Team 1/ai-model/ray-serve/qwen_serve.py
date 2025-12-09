@@ -2,7 +2,7 @@ import ray
 from ray import serve
 import logging
 import time
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -27,7 +27,7 @@ logger = logging.getLogger("ray.serve")
 class ChatRequest(BaseModel):
     message: str
     max_length: Optional[int] = 1024 # Qwen hỗ trợ context rất dài
-    temperature: Optional[float] = 0.7
+    history: Optional[List[Dict[str, str]]] = []
 
 # --------------------------------------------------------------
 # 2. RAY SERVE DEPLOYMENT (Qwen2.5 - 4bit)
@@ -88,13 +88,18 @@ class QwenServeDeployment:
              return {"response": f"Error: {getattr(self, 'error_msg', 'Unknown')}", "status": "error"}
 
         try:
-            # Qwen dùng Chat Template chuẩn (ChatML)
+            # 1. Bắt đầu với System Prompt
             messages = [
-                {"role": "system", "content": "You are Qwen, a helpful assistant."},
-                {"role": "user", "content": request.message}
+                {"role": "system", "content": "You are Qwen, a helpful assistant."}
             ]
+
+            # 2. Nối lịch sử chat (History) vào
+            if request.history:
+                messages.extend(request.history)
             
-            # Tạo prompt bằng apply_chat_template
+            # 3. Cuối cùng mới là câu hỏi hiện tại của User
+            messages.append({"role": "user", "content": request.message})
+            
             text = self.tokenizer.apply_chat_template(
                 messages,
                 tokenize=False,

@@ -27,7 +27,7 @@ def chat_fn(message, history):
 
     # 3. Gọi backend AI
     try:
-        resp = requests.post(AI_URL, json=payload, timeout=20)
+        resp = requests.post(AI_URL, json=payload, timeout=60)
         
         if resp.status_code == 200:
             answer = resp.json().get("response", "(No response content)")

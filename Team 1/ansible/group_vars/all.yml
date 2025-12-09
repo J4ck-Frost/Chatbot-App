@@ -11,19 +11,13 @@ ai_service_port: 8000
 # Image Names (Đặt tên để Cloud Build tạo ra)
 ai_image_name: "qwen2-serve"
 ai_image_tag: "v1"
-app_image_name: "postgres-test-app" # Tên con App của bạn
 
 # Terraform Paths
 terraform_project_path: "{{ playbook_dir }}/../environments/dev"
 
 # Paths Source Code
-ai_source_path: "{{ playbook_dir }}/../ai-model"
-app_source_path: "{{ playbook_dir }}/../test-app" # Đường dẫn code App
+ai_source_path: "{{ playbook_dir }}/../ai-model" # Đường dẫn code App
 
-# Helm Config
-helm_chart_path: "{{ playbook_dir }}/../helms/test-app"
-helm_values_file: "values-dev.yaml"
-app_release_name: "test-app"
 
 # Timeout Deployment
 wait_timeout: 300
