@@ -106,6 +106,12 @@ resource "google_project_iam_member" "cicd_cluster_admin" {
   member  = "serviceAccount:${google_service_account.cicd_sa.email}"
 }
 
+resource "google_project_iam_member" "cicd_cloudbuild_editor" {
+  project = var.project_id
+  role    = "roles/cloudbuild.builds.editor"
+  member  = "serviceAccount:${google_service_account.cicd_sa.email}"
+}
+
 resource "google_project_iam_member" "cicd_storage_admin" {
   project = var.project_id
   role    = "roles/storage.admin"
