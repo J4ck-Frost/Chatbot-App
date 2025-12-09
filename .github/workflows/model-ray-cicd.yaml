@@ -14,7 +14,6 @@ env:
   IMAGE_NAME: qwen2-serve
   SOURCE_PATH: "./Team 1/ai-model"
   HELM_PATH: "./Team 1/helms/ai-service"
-  # [QUAN TRỌNG] Đường dẫn file python để bơm vào Helm
   PYTHON_SCRIPT_PATH: "Team 1/ai-model/ray-serve/qwen_serve.py"
 
 jobs:
@@ -23,7 +22,6 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
-        # [ĐÃ SỬA] Xóa 'ref' để lấy code mới nhất
 
       # --- 1. Auth & Setup ---
       - name: Auth GCP
@@ -49,19 +47,27 @@ jobs:
           docker build -t "$FULL_IMAGE" "$SOURCE_PATH"
           docker push "$FULL_IMAGE"
 
-      # --- 3. Deploy HELM ---
+      # --- 3. Install Helm & KubeRay Operator (BƯỚC MỚI QUAN TRỌNG) ---
       - name: Install Helm
         uses: azure/setup-helm@v3
 
+      - name: Install KubeRay Operator (Infrastructure)
+        run: |
+          helm repo add kuberay https://ray-project.github.io/kuberay-helm/
+          helm repo update
+          
+          helm upgrade --install kuberay-operator kuberay/kuberay-operator \
+            --namespace "${{ secrets.TEAM1_K8S_NAMESPACE }}" \
+            --create-namespace \
+            --wait
+
+      # --- 4. Deploy Model Service ---
       - name: Deploy Model Service
         env:
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          # [QUAN TRỌNG] Dùng --set-file để bơm nội dung file code vào biến pythonCode
-          # Đây là cách thay thế cho ansible lookup('file')
-          
           helm upgrade --install qwen-service "$HELM_PATH" \
-            -n "${{ vars.TEAM1_K8S_NAMESPACE }}" \
+            -n "${{ secrets.TEAM1_K8S_NAMESPACE }}" \
             --set image.repository="$GAR_REPO/$IMAGE_NAME" \
             --set image.tag="$IMAGE_TAG" \
             --set-file pythonCode="$PYTHON_SCRIPT_PATH" \
