@@ -37,7 +37,6 @@ jobs:
           
           echo "Dung lượng SAU khi dọn:"
           df -h
-    steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
