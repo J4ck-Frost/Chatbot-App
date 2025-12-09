@@ -35,8 +35,8 @@ jobs:
       - name: Get GKE Credentials
         uses: google-github-actions/get-gke-credentials@v1
         with:
-          cluster_name: ${{ secrets.TEAM1_GKE_CLUSTER }}
-          location: ${{ secrets.TEAM1_GKE_LOCATION }}
+          cluster_name: ${{ variables.TEAM1_GKE_CLUSTER }}
+          location: ${{ variables.TEAM1_GKE_LOCATION }}
           project_id: ${{ secrets.TEAM1_GCP_PROJECT }}
 
       # --- 2. Build & Push Image ---
@@ -57,7 +57,7 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
         run: |
           helm upgrade --install chatbot-app "$HELM_PATH" \
-            -n "${{ secrets.TEAM1_K8S_NAMESPACE }}" \
+            -n "${{ variables.TEAM1_K8S_NAMESPACE }}" \
             --set image.repository="$GAR_REPO/$IMAGE_NAME" \
             --set image.tag="$IMAGE_TAG" \
             --wait --timeout 5m
