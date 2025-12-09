@@ -37,8 +37,8 @@ jobs:
       - name: Get GKE Credentials
         uses: google-github-actions/get-gke-credentials@v1
         with:
-          cluster_name: ${{ variables.TEAM1_GKE_CLUSTER }}
-          location: ${{ variables.TEAM1_GKE_LOCATION }}
+          cluster_name: ${{ vars.TEAM1_GKE_CLUSTER }}
+          location: ${{ vars.TEAM1_GKE_LOCATION }}
 
       # --- 2. Build & Push Image ---
       - name: Build & Push
@@ -61,7 +61,7 @@ jobs:
           # Đây là cách thay thế cho ansible lookup('file')
           
           helm upgrade --install qwen-service "$HELM_PATH" \
-            -n "${{ variables.TEAM1_K8S_NAMESPACE }}" \
+            -n "${{ vars.TEAM1_K8S_NAMESPACE }}" \
             --set image.repository="$GAR_REPO/$IMAGE_NAME" \
             --set image.tag="$IMAGE_TAG" \
             --set-file pythonCode="$PYTHON_SCRIPT_PATH" \
