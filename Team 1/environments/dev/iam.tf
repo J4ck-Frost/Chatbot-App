@@ -99,4 +99,11 @@ resource "google_project_iam_member" "cicd_gke_developer" {
   member  = "serviceAccount:${google_service_account.cicd_sa.email}"
 }
 
+# Cấp quyền Cluster Admin (Để cài được CRD và Operator)
+resource "google_project_iam_member" "cicd_cluster_admin" {
+  project = var.project_id
+  role    = "roles/container.clusterAdmin"
+  member  = "serviceAccount:${google_service_account.cicd_sa.email}"
+}
+
 
