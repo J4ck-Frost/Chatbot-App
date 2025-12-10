@@ -3,45 +3,49 @@ import requests
 import gradio as gr
 
 AI_URL = os.environ.get("AI_API_URL", "http://qwen-unified-service:8000/chat")
-BUCKET_NAME = os.environ.get("GCS_BUCKET_NAME")
 
 def chat_fn(message, history):
-    """
-    Xử lý history từ Gradio để gửi sang Backend.
-    Gradio mới có thể trả về list of dicts, Gradio cũ trả về list of lists.
-    """
-    
     formatted_history = []
     
-    # 1. LOGIC CONVERT THÔNG MINH (FIX LỖI KEYERROR: 0)
     for turn in history:
-        # Trường hợp A: Nếu turn là List/Tuple (Gradio cũ: ['user msg', 'bot msg'])
-        if isinstance(turn, (list, tuple)):
-            formatted_history.append({"role": "user", "content": turn[0]})
-            if len(turn) > 1 and turn[1] is not None:
-                formatted_history.append({"role": "assistant", "content": turn[1]})
-        
-        # Trường hợp B: Nếu turn là Dict (Gradio mới: {'role': 'user', 'content': '...'})
-        # Đây chính là trường hợp bạn đang gặp phải.
-        elif isinstance(turn, dict):
-            formatted_history.append(turn)
+        role = "user"
+        content = ""
 
-    # 2. Chuẩn bị payload
+        # 1. Xử lý nếu turn là Dict (Gradio mới)
+        if isinstance(turn, dict):
+            role = turn.get("role")
+            raw_content = turn.get("content")
+            
+            # [QUAN TRỌNG] Bóc tách text từ list multimodal
+            if isinstance(raw_content, list):
+                # Duyệt qua các phần tử trong list (vd: [{'text': 'hi', 'type': 'text'}])
+                for item in raw_content:
+                    if isinstance(item, dict) and item.get("type") == "text":
+                        content += item.get("text", "")
+            elif isinstance(raw_content, str):
+                content = raw_content
+
+        # 2. Xử lý nếu turn là List/Tuple (Gradio cũ - Dự phòng)
+        elif isinstance(turn, (list, tuple)):
+            content = turn[0] # Chỉ lấy user message, phần assistant xử lý riêng nếu cần logic cũ
+            role = "user" # Mặc định tạm
+            
+        # 3. Chỉ thêm vào nếu có nội dung
+        if content:
+            formatted_history.append({"role": role, "content": content})
+
+    # Chuẩn bị payload
     payload = {
         "message": message, 
         "history": formatted_history
     }
 
-    # 3. Gọi backend AI
     try:
-        # Timeout 60s để chờ model suy nghĩ
         resp = requests.post(AI_URL, json=payload, timeout=60)
-        
         if resp.status_code == 200:
             answer = resp.json().get("response", "(No response content)")
         else:
             answer = f"⚠️ AI Error: {resp.status_code} - {resp.text}"
-            
     except Exception as e:
         answer = f"❌ Connection error: {str(e)}"
 
@@ -50,10 +54,8 @@ def chat_fn(message, history):
 # Init ChatInterface
 iface = gr.ChatInterface(
     fn=chat_fn, 
-    title="Team 1 Chatbot",
-    # type="messages" # Gradio 4.x tự động dùng kiểu này rồi nên ko cần khai báo, nhưng code trên đã handle cả 2.
+    title="Gwen Chatbot"
 )
 
 if __name__ == "__main__":
     iface.launch(server_name="0.0.0.0", server_port=80)
-    
