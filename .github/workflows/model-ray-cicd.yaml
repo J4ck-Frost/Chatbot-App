@@ -63,7 +63,7 @@ jobs:
           gcloud builds submit "$SOURCE_PATH" \
             --tag "$GAR_REPO/$IMAGE_NAME:$IMAGE_TAG" \
             --project "$PROJECT_ID" \
-            --supress-logs \
+            --suppress-logs \
             --quiet \
             --timeout= 20m
 
