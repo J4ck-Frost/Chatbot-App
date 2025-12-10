@@ -7,17 +7,24 @@ BUCKET_NAME = os.environ.get("GCS_BUCKET_NAME")
 
 def chat_fn(message, history):
     """
-    history: Mặc định của ChatInterface là list các cặp [[user_msg, bot_msg], ...]
-    Chúng ta cần convert nó sang list of dicts [{"role": "user", ...}] để gửi cho Backend.
+    Xử lý history từ Gradio để gửi sang Backend.
+    Gradio mới có thể trả về list of dicts, Gradio cũ trả về list of lists.
     """
     
-    # 1. CONVERT history từ Tuples -> Dicts (cho Backend)
     formatted_history = []
+    
+    # 1. LOGIC CONVERT THÔNG MINH (FIX LỖI KEYERROR: 0)
     for turn in history:
-        # turn[0] là user input, turn[1] là bot output
-        formatted_history.append({"role": "user", "content": turn[0]})
-        if turn[1] is not None:
-            formatted_history.append({"role": "assistant", "content": turn[1]})
+        # Trường hợp A: Nếu turn là List/Tuple (Gradio cũ: ['user msg', 'bot msg'])
+        if isinstance(turn, (list, tuple)):
+            formatted_history.append({"role": "user", "content": turn[0]})
+            if len(turn) > 1 and turn[1] is not None:
+                formatted_history.append({"role": "assistant", "content": turn[1]})
+        
+        # Trường hợp B: Nếu turn là Dict (Gradio mới: {'role': 'user', 'content': '...'})
+        # Đây chính là trường hợp bạn đang gặp phải.
+        elif isinstance(turn, dict):
+            formatted_history.append(turn)
 
     # 2. Chuẩn bị payload
     payload = {
@@ -27,6 +34,7 @@ def chat_fn(message, history):
 
     # 3. Gọi backend AI
     try:
+        # Timeout 60s để chờ model suy nghĩ
         resp = requests.post(AI_URL, json=payload, timeout=60)
         
         if resp.status_code == 200:
@@ -37,13 +45,14 @@ def chat_fn(message, history):
     except Exception as e:
         answer = f"❌ Connection error: {str(e)}"
 
-    # 4. Trả về string (ChatInterface tự động update UI)
     return answer
 
-# KHÔNG dùng type="messages" nữa để tránh lỗi init
+# Init ChatInterface
 iface = gr.ChatInterface(
     fn=chat_fn, 
-    title="Team 1 Chatbot"
+    title="Team 1 Chatbot",
+    # type="messages" # Gradio 4.x tự động dùng kiểu này rồi nên ko cần khai báo, nhưng code trên đã handle cả 2.
 )
 
-iface.launch(server_name="0.0.0.0", server_port=80)
+if __name__ == "__main__":
+    iface.launch(server_name="0.0.0.0", server_port=80)
