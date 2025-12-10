@@ -20,23 +20,23 @@ jobs:
   build-deploy-model:
     runs-on: ubuntu-latest
     steps:
-      # # --- BƯỚC NÀY ĐỂ XÓA RÁC CỦA GITHUB (ANDROID, DOTNET...) ---
-      # - name: 🧹 Free Disk Space (Dọn rác máy ảo)
-      #   run: |
-      #     echo "Dung lượng TRƯỚC khi dọn:"
-      #     df -h
+      # --- BƯỚC NÀY ĐỂ XÓA RÁC CỦA GITHUB (ANDROID, DOTNET...) ---
+      - name: 🧹 Free Disk Space (Dọn rác máy ảo)
+        run: |
+          echo "Dung lượng TRƯỚC khi dọn:"
+          df -h
           
-      #     # 1. Xóa Android SDK (Nặng nhất ~10GB) - Mình ko dùng Mobile nên xóa
-      #     sudo rm -rf /usr/local/lib/android
+          # 1. Xóa Android SDK (Nặng nhất ~10GB) - Mình ko dùng Mobile nên xóa
+          sudo rm -rf /usr/local/lib/android
           
-      #     # 2. Xóa .NET (Nặng ~6GB)
-      #     sudo rm -rf /usr/share/dotnet
+          # 2. Xóa .NET (Nặng ~6GB)
+          sudo rm -rf /usr/share/dotnet
           
-      #     # 3. Xóa các Docker Image có sẵn của GitHub (Không phải của bạn)
-      #     sudo docker image prune --all --force
+          # 3. Xóa các Docker Image có sẵn của GitHub (Không phải của bạn)
+          sudo docker image prune --all --force
           
-      #     echo "Dung lượng SAU khi dọn:"
-      #     df -h
+          echo "Dung lượng SAU khi dọn:"
+          df -h
       - name: Checkout Code
         uses: actions/checkout@v4
 
@@ -60,12 +60,9 @@ jobs:
         env:
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          gcloud builds submit "$SOURCE_PATH" \
-            --tag "$GAR_REPO/$IMAGE_NAME:$IMAGE_TAG" \
-            --project "$PROJECT_ID" \
-            --suppress-logs \
-            --quiet \
-            --timeout=20m
+          FULL_IMAGE="$GAR_REPO/$IMAGE_NAME:$IMAGE_TAG"
+          docker build -t "$FULL_IMAGE" "$SOURCE_PATH"
+          docker push "$FULL_IMAGE"
 
       # --- 3. Install Helm & KubeRay Operator (BƯỚC MỚI QUAN TRỌNG) ---
       - name: Install Helm
