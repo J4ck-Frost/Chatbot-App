@@ -31,3 +31,6 @@ service:
   name: chatbot-app-service
   type: LoadBalancer
   port: 80
+
+env:
+  AI_API_URL: "http://qwen-unified-service:8000/chat"
