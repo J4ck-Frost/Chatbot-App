@@ -111,7 +111,7 @@ class QwenServeDeployment:
             generated_ids = self.model.generate(
                 model_inputs.input_ids,
                 max_new_tokens=request.max_length,
-                temperature=request.temperature,
+                temperature=0.7,
                 do_sample=True
             )
             

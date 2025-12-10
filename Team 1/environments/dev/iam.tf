@@ -125,4 +125,11 @@ resource "google_project_iam_member" "cicd_sa_user" {
   member  = "serviceAccount:${google_service_account.cicd_sa.email}"
 }
 
+# Cấp quyền xem Logs (Để gcloud stream log về GitHub Actions)
+resource "google_project_iam_member" "cicd_log_viewer" {
+  project = var.project_id
+  role    = "roles/logging.viewer"
+  member  = "serviceAccount:${google_service_account.cicd_sa.email}"
+}
+
 
