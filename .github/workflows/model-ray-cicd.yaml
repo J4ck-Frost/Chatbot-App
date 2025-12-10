@@ -65,7 +65,7 @@ jobs:
             --project "$PROJECT_ID" \
             --suppress-logs \
             --quiet \
-            --timeout= 20m
+            --timeout=20m
 
       # --- 3. Install Helm & KubeRay Operator (BƯỚC MỚI QUAN TRỌNG) ---
       - name: Install Helm
