@@ -121,7 +121,7 @@ jobs:
 
           for i in $(seq 1 $RETRIES); do
             # Chạy curl bên trong Pod
-            HTTP_STATUS=$(kubectl exec $CLIENT_POD -n $NAMESPACE -- python3 -c "import urllib.request; print(urllib.request.urlopen('http://localhost:8000/health').getcode())" || echo "000")
+            HTTP_STATUS=$(kubectl exec $CLIENT_POD -n $NAMESPACE -- python3 -c "import urllib.request; print(urllib.request.urlopen('http://ray-cluster-head-svc:8000').getcode())" || echo "000")
             
             if [ "$HTTP_STATUS" == "200" ]; then
               echo " Health Check OK! (Attempt $i/$RETRIES)"
