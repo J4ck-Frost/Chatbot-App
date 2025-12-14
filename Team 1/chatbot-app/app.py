@@ -45,9 +45,9 @@ def chat_fn(message, history):
         if resp.status_code == 200:
             answer = resp.json().get("response", "(No response content)")
         else:
-            answer = f"⚠️ AI Error: {resp.status_code} - {resp.text}"
+            answer = f"AI Error: {resp.status_code} - {resp.text}"
     except Exception as e:
-        answer = f"❌ Connection error: {str(e)}"
+        answer = f"Connection error: {str(e)}"
 
     return answer
 

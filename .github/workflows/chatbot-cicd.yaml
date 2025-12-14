@@ -69,9 +69,9 @@ jobs:
       # --- 4. VERIFY & AUTO ROLLBACK ---
       - name: Verify Chatbot & Auto Rollback
         env:
-          NAMESPACE: ${{ vars.TEAM1_K8S_NAMESPACE }}
+          NAMESPACE: ${{ vars.TEAM1_K8S_NAMESPACE}}
         run: |
-          echo "⏳ Đang chờ Pod 'chatbot-app' khởi động trong Namespace: $NAMESPACE..."
+          echo "Kiểm tra Pod 'chatbot-app' trong Namespace: $NAMESPACE..."
           
           # 1. Chờ Pod có trạng thái Ready (Tối đa 3 phút)
           kubectl wait --for=condition=ready pod -l app=chatbot-app -n $NAMESPACE --timeout=180s || true
@@ -80,42 +80,41 @@ jobs:
           POD_NAME=$(kubectl get pod -l app=chatbot-app -n $NAMESPACE -o jsonpath="{.items[0].metadata.name}")
           
           if [ -z "$POD_NAME" ]; then
-             echo " LỖI: Không tìm thấy Pod nào tên 'chatbot-app'!"
+             echo "LỖI: Không tìm thấy Pod nào tên 'chatbot-app'!"
              exit 1
           fi
 
-          echo " Đang test Web UI trên Pod: $POD_NAME (Port 80)"
+          echo "Đang test Web UI trên Pod: $POD_NAME (Port 80)"
           
           # 2. Test gọi vào trang chủ (Port 80)
           RETRIES=10
           SUCCESS=false
 
           for i in $(seq 1 $RETRIES); do
-            # Gradio trả về 200 khi truy cập root /
-            HTTP_STATUS=$(kubectl exec $CLIENT_POD -n $NAMESPACE -- python3 -c "import urllib.request; print(urllib.request.urlopen('http://localhost:80/').getcode())" || echo "000")
+            HTTP_STATUS=$(kubectl exec $POD_NAME -n $NAMESPACE -- python3 -c "import urllib.request; print(urllib.request.urlopen('http://localhost:80/').getcode())" || echo "000")
             
             if [ "$HTTP_STATUS" == "200" ]; then
-              echo " Web UI OK! (Attempt $i/$RETRIES)"
+              echo "Web UI OK! (Attempt $i/$RETRIES)"
               SUCCESS=true
               break
             else
-              echo " Web UI chưa sẵn sàng (Code: $HTTP_STATUS). Đang chờ... (Attempt $i/$RETRIES)"
+              echo "Web UI chưa sẵn sàng (Code: $HTTP_STATUS). Đang chờ... (Attempt $i/$RETRIES)"
               sleep 5
             fi
           done
 
           # 3. QUYẾT ĐỊNH & ROLLBACK
           if [ "$SUCCESS" = true ]; then
-            echo " CHATBOT DEPLOY THÀNH CÔNG!"
+            echo "CHATBOT DEPLOY THÀNH CÔNG!"
           else
-            echo " CHATBOT LỖI! KHÔNG TRUY CẬP ĐƯỢC WEB."
+            echo "CHATBOT LỖI! KHÔNG TRUY CẬP ĐƯỢC WEB."
             
-            echo " --- LOGS 50 DÒNG CUỐI ---"
+            echo "--- LOGS 50 DÒNG CUỐI ---"
             kubectl logs $POD_NAME -n $NAMESPACE --tail=50
             
-            echo " ĐANG ROLLBACK VỀ BẢN TRƯỚC..."
+            echo "ĐANG ROLLBACK VỀ BẢN TRƯỚC..."
             helm rollback chatbot-app 0 -n $NAMESPACE
             
-            echo " Đã Rollback xong."
+            echo "Đã Rollback xong."
             exit 1
           fi
