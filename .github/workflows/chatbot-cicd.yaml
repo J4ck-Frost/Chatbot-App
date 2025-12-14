@@ -2,7 +2,7 @@ name: CI/CD - Chatbot App (Helm)
 
 on:
   push:
-    branches: [ "team-1/long_ngo" ] # Chạy khi push vào nhánh này
+    branches: [ "team-1/long_ngo" ]
     paths:
       - 'Team 1/chatbot-app/**'
       - 'Team 1/helms/chatbot-app/**'
@@ -21,7 +21,6 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
-        # [ĐÃ SỬA] Xóa 'ref: team-1-branch' để nó checkout đúng code mới nhất
 
       # --- 1. Auth & Setup ---
       - name: Auth GCP
@@ -39,14 +38,18 @@ jobs:
           location: ${{ vars.TEAM1_GKE_LOCATION }}
           project_id: ${{ secrets.TEAM1_GCP_PROJECT }}
 
-      # --- 2. Build & Push Image ---
+      # --- 2. Build & Push Image (ĐÃ NÂNG CẤP CACHE) ---
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build & Push
-        env:
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          FULL_IMAGE="$GAR_REPO/$IMAGE_NAME:$IMAGE_TAG"
-          docker build -t "$FULL_IMAGE" "$SOURCE_PATH"
-          docker push "$FULL_IMAGE"
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ env.SOURCE_PATH }}
+          push: true
+          tags: ${{ env.GAR_REPO }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       # --- 3. Deploy Helm ---
       - name: Install Helm
@@ -60,4 +63,59 @@ jobs:
             -n "${{ vars.TEAM1_K8S_NAMESPACE }}" \
             --set image.repository="$GAR_REPO/$IMAGE_NAME" \
             --set image.tag="$IMAGE_TAG" \
-            --wait --timeout 5m
+            --wait=false 
+            # Tắt wait để bước Verify bên dưới tự lo
+
+      # --- 4. VERIFY & AUTO ROLLBACK ---
+      - name: Verify Chatbot & Auto Rollback
+        env:
+          NAMESPACE: ${{ vars.TEAM1_K8S_NAMESPACE }}
+        run: |
+          echo "⏳ Đang chờ Pod 'chatbot-app' khởi động trong Namespace: $NAMESPACE..."
+          
+          # 1. Chờ Pod có trạng thái Ready (Tối đa 3 phút)
+          kubectl wait --for=condition=ready pod -l app=chatbot-app -n $NAMESPACE --timeout=180s || true
+
+          # Lấy tên Pod thực tế
+          POD_NAME=$(kubectl get pod -l app=chatbot-app -n $NAMESPACE -o jsonpath="{.items[0].metadata.name}")
+          
+          if [ -z "$POD_NAME" ]; then
+             echo " LỖI: Không tìm thấy Pod nào tên 'chatbot-app'!"
+             exit 1
+          fi
+
+          echo " Đang test Web UI trên Pod: $POD_NAME (Port 80)"
+          
+          # 2. Test gọi vào trang chủ (Port 80)
+          RETRIES=10
+          SUCCESS=false
+
+          for i in $(seq 1 $RETRIES); do
+            # Gradio trả về 200 khi truy cập root /
+            HTTP_STATUS=$(kubectl exec $POD_NAME -n $NAMESPACE -- curl -s -o /dev/null -w "%{http_code}" http://localhost:80/ || echo "000")
+            
+            if [ "$HTTP_STATUS" == "200" ]; then
+              echo " Web UI OK! (Attempt $i/$RETRIES)"
+              SUCCESS=true
+              break
+            else
+              echo " Web UI chưa sẵn sàng (Code: $HTTP_STATUS). Đang chờ... (Attempt $i/$RETRIES)"
+              sleep 5
+            fi
+          done
+
+          # 3. QUYẾT ĐỊNH & ROLLBACK
+          if [ "$SUCCESS" = true ]; then
+            echo " CHATBOT DEPLOY THÀNH CÔNG!"
+          else
+            echo " CHATBOT LỖI! KHÔNG TRUY CẬP ĐƯỢC WEB."
+            
+            echo " --- LOGS 50 DÒNG CUỐI ---"
+            kubectl logs $POD_NAME -n $NAMESPACE --tail=50
+            
+            echo " ĐANG ROLLBACK VỀ BẢN TRƯỚC..."
+            helm rollback chatbot-app 0 -n $NAMESPACE
+            
+            echo " Đã Rollback xong."
+            exit 1
+          fi

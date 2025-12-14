@@ -74,9 +74,9 @@ class QwenServeDeployment:
 
             # 3. Tải Model từ HuggingFace (Nếu chưa có trong PVC)
             if not os.path.exists(self.local_dir):
-                logger.info(f"⬇️ Downloading model to {self.local_dir}...")
+                logger.info(f"Downloading model to {self.local_dir}...")
             else:
-                logger.info(f"♻️ Model found in cache: {self.local_dir}")
+                logger.info(f"Model found in cache: {self.local_dir}")
 
             snapshot_download(
                 repo_id=self.model_id,
@@ -85,7 +85,7 @@ class QwenServeDeployment:
                 # token=os.environ.get("HF_TOKEN") # Bỏ comment nếu dùng model Private
             )
 
-            logger.info("✅ Model downloaded/checked. Loading into GPU...")
+            logger.info(" Model downloaded/checked. Loading into GPU...")
 
             # 4. Load Model từ thư mục Local
             self.tokenizer = AutoTokenizer.from_pretrained(
@@ -101,10 +101,10 @@ class QwenServeDeployment:
                 low_cpu_mem_usage=True
             )
 
-            logger.info("🎉 Qwen2.5-7B loaded successfully!")
+            logger.info("Qwen2.5-7B loaded successfully!")
 
         except Exception as e:
-            logger.error(f"❌ Init failed: {e}")
+            logger.error(f"Init failed: {e}")
             self.fallback_mode = True
             self.error_msg = str(e)
 
@@ -151,7 +151,7 @@ class QwenServeDeployment:
             }
 
         except Exception as e:
-            logger.error(f"❌ Inference error: {e}")
+            logger.error(f"Inference error: {e}")
             return {"response": str(e), "status": "error"}
 
     @app.get("/health")
