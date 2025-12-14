@@ -101,7 +101,7 @@ class QwenServeDeployment:
                 low_cpu_mem_usage=True
             )
 
-            logger.info("Qwen2.5-7B loaded successfully!")
+            logger.info("Qwen2.5-7B loaded successfully!!!")
 
         except Exception as e:
             logger.error(f"Init failed: {e}")
