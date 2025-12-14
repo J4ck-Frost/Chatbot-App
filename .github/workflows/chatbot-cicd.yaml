@@ -92,7 +92,7 @@ jobs:
 
           for i in $(seq 1 $RETRIES); do
             # Gradio trả về 200 khi truy cập root /
-            HTTP_STATUS=$(kubectl exec $POD_NAME -n $NAMESPACE -- curl -s -o /dev/null -w "%{http_code}" http://localhost:80/ || echo "000")
+            HTTP_STATUS=$(kubectl exec $CLIENT_POD -n $NAMESPACE -- python3 -c "import urllib.request; print(urllib.request.urlopen('http://localhost:80/').getcode())" || echo "000")
             
             if [ "$HTTP_STATUS" == "200" ]; then
               echo " Web UI OK! (Attempt $i/$RETRIES)"
