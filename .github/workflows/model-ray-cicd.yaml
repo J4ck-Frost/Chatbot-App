@@ -55,14 +55,19 @@ jobs:
           cluster_name: ${{ vars.TEAM1_GKE_CLUSTER }}
           location: ${{ vars.TEAM1_GKE_LOCATION }}
 
-      # --- 2. Build & Push Image ---
+# --- 2. Build & Push Image (Có Caching) ---
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build & Push
-        env:
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          FULL_IMAGE="$GAR_REPO/$IMAGE_NAME:$IMAGE_TAG"
-          docker build -t "$FULL_IMAGE" "$SOURCE_PATH"
-          docker push "$FULL_IMAGE"
+        uses: docker/build-push-action@v5  # Dùng action xịn của Docker
+        with:
+          context: ${{ env.SOURCE_PATH }}
+          push: true
+          tags: ${{ env.GAR_REPO }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          # Dùng cache từ chính GitHub Actions để lần sau build siêu nhanh
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       # --- 3. Install Helm & KubeRay Operator (BƯỚC MỚI QUAN TRỌNG) ---
       - name: Install Helm

@@ -2,11 +2,14 @@ import ray
 from ray import serve
 import logging
 import time
+import os
 from typing import Dict, Any, Optional, List
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import torch
+from huggingface_hub import snapshot_download
+from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 
 # --------------------------------------------------------------
 # 1. CẤU HÌNH FASTAPI
@@ -26,15 +29,23 @@ logger = logging.getLogger("ray.serve")
 
 class ChatRequest(BaseModel):
     message: str
-    max_length: Optional[int] = 1024 # Qwen hỗ trợ context rất dài
+    max_length: Optional[int] = 1024 
     history: Optional[List[Dict[str, str]]] = []
+    temperature: Optional[float] = 0.7
 
 # --------------------------------------------------------------
 # 2. RAY SERVE DEPLOYMENT (Qwen2.5 - 4bit)
 # --------------------------------------------------------------
 @serve.deployment(
     name="qwen2.5-7b",
-    num_replicas=1,
+    # Autoscaling config (Tùy chọn: Scale to Zero để tiết kiệm tiền)
+    autoscaling_config={
+        "min_replicas": 1,
+        "max_replicas": 2,
+        "target_num_ongoing_requests_per_replica": 5,
+        "downscale_delay_s": 300,
+        "upscale_delay_s": 10,
+    },
     ray_actor_options={
         "num_gpus": 1.0,
         "num_cpus": 2
@@ -44,15 +55,16 @@ class ChatRequest(BaseModel):
 @serve.ingress(app)
 class QwenServeDeployment:
     def __init__(self):
-        logger.info("🚀 Initializing Qwen2.5-7B-Instruct...")
+        logger.info("🚀 Initializing Qwen2.5-7B-Instruct with Runtime Download...")
         self.fallback_mode = False
         
         try:
-            from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
+            # 1. Cấu hình đường dẫn và tên model
+            self.model_id = "Qwen/Qwen2.5-7B-Instruct"
+            # Thư mục này sẽ được mount từ PVC vào
+            self.local_dir = "/data/models/Qwen2.5-7B-Instruct"
 
-            self.model_name = "Qwen/Qwen2.5-7B-Instruct"
-            
-            # Cấu hình 4-bit để chạy siêu nhẹ (chỉ tốn ~6-7GB VRAM)
+            # 2. Cấu hình 4-bit (QUAN TRỌNG: Để chạy nhẹ RAM)
             bnb_config = BitsAndBytesConfig(
                 load_in_4bit=True,
                 bnb_4bit_quant_type="nf4",
@@ -60,44 +72,55 @@ class QwenServeDeployment:
                 bnb_4bit_compute_dtype=torch.float16
             )
 
-            logger.info(f"🔄 Loading tokenizer for {self.model_name}...")
-            self.tokenizer = AutoTokenizer.from_pretrained(
-                self.model_name,
-                trust_remote_code=True
+            # 3. Tải Model từ HuggingFace (Nếu chưa có trong PVC)
+            if not os.path.exists(self.local_dir):
+                logger.info(f"⬇️ Downloading model to {self.local_dir}...")
+            else:
+                logger.info(f"♻️ Model found in cache: {self.local_dir}")
+
+            snapshot_download(
+                repo_id=self.model_id,
+                local_dir=self.local_dir,
+                local_dir_use_symlinks=False, # Quan trọng cho PVC
+                # token=os.environ.get("HF_TOKEN") # Bỏ comment nếu dùng model Private
             )
 
-            logger.info(f"🔄 Loading model {self.model_name} (4-bit)...")
+            logger.info("✅ Model downloaded/checked. Loading into GPU...")
+
+            # 4. Load Model từ thư mục Local
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                self.local_dir, 
+                trust_remote_code=True
+            )
+            
             self.model = AutoModelForCausalLM.from_pretrained(
-                self.model_name,
-                quantization_config=bnb_config,
+                self.local_dir,
+                quantization_config=bnb_config, # Đã sửa lại đúng cú pháp
                 device_map="auto",
                 trust_remote_code=True,
                 low_cpu_mem_usage=True
             )
 
-            logger.info("✅ Qwen2.5-7B model loaded successfully!")
+            logger.info("🎉 Qwen2.5-7B loaded successfully!")
 
         except Exception as e:
-            logger.error(f"❌ Model loading failed: {e}")
+            logger.error(f"❌ Init failed: {e}")
             self.fallback_mode = True
             self.error_msg = str(e)
 
     @app.post("/chat")
     async def chat(self, request: ChatRequest) -> Dict[str, Any]:
         if self.fallback_mode:
-             return {"response": f"Error: {getattr(self, 'error_msg', 'Unknown')}", "status": "error"}
+             return {"response": f"System Error: {getattr(self, 'error_msg', 'Unknown')}", "status": "error"}
 
         try:
-            # 1. Bắt đầu với System Prompt
             messages = [
                 {"role": "system", "content": "You are Qwen, a helpful assistant."}
             ]
 
-            # 2. Nối lịch sử chat (History) vào
             if request.history:
                 messages.extend(request.history)
             
-            # 3. Cuối cùng mới là câu hỏi hiện tại của User
             messages.append({"role": "user", "content": request.message})
             
             text = self.tokenizer.apply_chat_template(
@@ -111,11 +134,10 @@ class QwenServeDeployment:
             generated_ids = self.model.generate(
                 model_inputs.input_ids,
                 max_new_tokens=request.max_length,
-                temperature=0.7,
+                temperature=request.temperature, # Lấy từ request (đã có default 0.7)
                 do_sample=True
             )
             
-            # Lấy input length để cắt phần prompt đi, chỉ giữ lại câu trả lời mới
             generated_ids = [
                 output_ids[len(input_ids):] for input_ids, output_ids in zip(model_inputs.input_ids, generated_ids)
             ]

@@ -14,18 +14,17 @@ spec:
     metadata:
       labels:
         app: qwen-ray-serve
-      # [QUAN TRỌNG] Dòng này PHẢI nằm ở đây (trong template)
-      # Khi configmap đổi -> hash đổi -> template đổi -> K8s restart Pod
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
     spec:
+      # Client này rất nhẹ, không cần node GPU, chạy node thường cũng được
+      # Nhưng để tiện thì cứ để node selector cũ cũng không sao
       tolerations:
       - key: "cloud.google.com/gke-preemptible"
         operator: "Equal"
         value: "true"
         effect: "NoSchedule"
-      nodeSelector:
-        cloud.google.com/gke-nodepool: gpu-pool
+
       containers:
       - name: qwen-serve
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -33,11 +32,12 @@ spec:
         command: ["/bin/bash", "-c"]
         args:
           - |
-            echo "Starting Qwen2.5 Ray Serve..."
+            echo "Connecting to Ray Cluster..."
+            # Script này sẽ gửi lệnh sang Ray Cluster để chạy Model bên đó
             python /app/ray-serve/qwen_serve.py
         
-        # [ĐÚNG RỒI] Phần Volume Mount này chuẩn
         volumeMounts:
+        # Chỉ cần mount Code thôi, KHÔNG cần mount /data/models nữa
         - name: code-volume
           mountPath: /app/ray-serve/qwen_serve.py
           subPath: qwen_serve.py
@@ -45,26 +45,27 @@ spec:
         ports:
         - containerPort: 8000
           name: serve
+        
         env:
+        # [BẮT BUỘC] Phải có dòng này để trỏ sang Ray Cluster (File 1)
         - name: RAY_ADDRESS
           value: "ray://ray-cluster-head-svc:10001"
         - name: PYTHONUNBUFFERED
           value: "1"
-        - name: RAY_SERVE_ENABLE_EXPERIMENTAL_STREAMING
-          value: "1"
+        
         resources:
           requests:
-            cpu: "2"
-            memory: "8Gi"
-            nvidia.com/gpu: 1
+            cpu: "500m" # Client rất nhẹ
+            memory: "512Mi"
           limits:
-            cpu: "4"
-            memory: "16Gi"
-            nvidia.com/gpu: 1
+            cpu: "1"
+            memory: "1Gi"
+            
       volumes:
       - name: code-volume
         configMap:
           name: qwen-serve-script
+      # KHÔNG CÒN volumes model-storage Ở ĐÂY NỮA
 
 ---
 apiVersion: v1
@@ -74,7 +75,6 @@ metadata:
   namespace: default
   labels:
     app: qwen-ray-serve
-  # [ĐÃ XÓA] Không để annotation checksum ở đây!
 spec:
   type: LoadBalancer
   selector:

@@ -25,11 +25,9 @@ spec:
     template:
       spec:
         nodeSelector:
-          # Head chạy trên CPU pool là OK
           cloud.google.com/gke-nodepool: cpu-pool
         containers:
         - name: ray-head
-          # [SỬA]: Head cũng phải dùng image mới để đồng bộ môi trường Python
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           ports:
           - containerPort: 6379
@@ -44,7 +42,7 @@ spec:
             name: serve
           resources:
             limits:
-              cpu: "1"      # Tăng nhẹ cho Head node ổn định
+              cpu: "1"
               memory: "4Gi"
             requests:
               cpu: "500m"
@@ -67,6 +65,12 @@ spec:
       num-gpus: "1"
     template:
       spec:
+        # [QUAN TRỌNG 1]: Set quyền cho user Ray (UID 1000) được phép ghi vào ổ cứng
+        securityContext:
+          fsGroup: 1000
+          runAsUser: 1000
+          runAsGroup: 1000
+        
         tolerations:
         - key: "nvidia.com/gpu"
           operator: "Equal"
@@ -74,16 +78,15 @@ spec:
           effect: "NoSchedule"
         nodeSelector:
           cloud.google.com/gke-nodepool: gpu-pool
+          
         containers:
         - name: ray-worker
-          # [SỬA]: Worker chạy model Qwen
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           resources:
-            # [QUAN TRỌNG]: Qwen 7B cần nhiều RAM hơn Phi-3
             limits:
               nvidia.com/gpu: 1
-              cpu: "4"       # Tăng CPU để xử lý tiền xử lý (tokenize)
-              memory: "16Gi" # Tăng lên 16GB RAM hệ thống (4GB là crash ngay)
+              cpu: "4"
+              memory: "16Gi"
             requests:
               nvidia.com/gpu: 1
               cpu: "2"
@@ -91,3 +94,14 @@ spec:
           env:
           - name: RAY_DISABLE_IMPORT_WARNING
             value: "1"
+            
+          # [QUAN TRỌNG 2]: Mount thư mục /data vào trong container
+          volumeMounts:
+          - mountPath: "/data"
+            name: model-storage
+
+        # [QUAN TRỌNG 3]: Khai báo Volume lấy từ PVC đã tạo
+        volumes:
+        - name: model-storage
+          persistentVolumeClaim:
+            claimName: model-pvc

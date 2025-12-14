@@ -9,12 +9,10 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      # [QUAN TRỌNG] Phải khớp với template bên dưới
       app: qwen-ray-serve
   template:
     metadata:
       labels:
-        # [QUAN TRỌNG] Label này được Service dùng để tìm Pod
         app: qwen-ray-serve
     spec:
       tolerations:
@@ -24,6 +22,17 @@ spec:
         effect: "NoSchedule"
       nodeSelector:
         cloud.google.com/gke-nodepool: gpu-pool
+      
+      # [SỬA 1] Lỗi thụt đầu dòng (Indentation)
+      # initContainers phải nằm ngang hàng với containers (thuộc spec), không phải thuộc nodeSelector
+      initContainers:
+      - name: fix-volume-permissions
+        image: busybox:latest
+        command: ["sh", "-c", "chown -R 1000:1000 /data && chmod -R 775 /data"]
+        volumeMounts:
+        - name: model-storage
+          mountPath: /data
+
       containers:
       - name: qwen-serve
         image: asia-southeast1-docker.pkg.dev/striking-figure-474817-a3/team1-ai-repo/qwen2-serve:v1
@@ -32,8 +41,14 @@ spec:
         args:
           - |
             echo "Starting Qwen2.5 Ray Serve..."
-            # Đảm bảo file python của bạn binding host 0.0.0.0
             python /app/ray-serve/qwen_serve.py
+        
+        # [SỬA 2] Container chính CŨNG PHẢI mount ổ cứng
+        # Nếu không mount, nó sẽ không thấy thư mục /data mà initContainer vừa sửa quyền
+        volumeMounts:
+        - name: model-storage
+          mountPath: /data  # Hoặc /data/models tùy code python của bạn
+        
         ports:
         - containerPort: 8000
           name: serve
@@ -45,16 +60,19 @@ spec:
         - name: RAY_SERVE_ENABLE_EXPERIMENTAL_STREAMING
           value: "1"
         resources:
-          # [KHUYẾN NGHỊ] Tăng tài nguyên để tránh crash khi load model
           requests:
-            cpu: "2"          # Tăng lên 2 vCPU để xử lý request http nhanh hơn
-            memory: "8Gi"     # Cần ít nhất 8GB để load model an toàn
+            cpu: "2"
+            memory: "8Gi"
             nvidia.com/gpu: 1
           limits:
             cpu: "4"
-            memory: "16Gi"    # Cho dư dả để Ray không bị OOM
+            memory: "16Gi"
             nvidia.com/gpu: 1
-
+      
+      volumes:
+      - name: model-storage
+        persistentVolumeClaim:
+          claimName: model-pvc
 ---
 apiVersion: v1
 kind: Service
@@ -67,8 +85,6 @@ metadata:
 spec:
   type: LoadBalancer
   selector:
-    # [QUAN TRỌNG] Đã sửa từ 'phi3-ray-serve' thành 'qwen-ray-serve'
-    # app: qwen-ray-serve
     ray.io/cluster: ray-cluster
     ray.io/node-type: head
   ports:

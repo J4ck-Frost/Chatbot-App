@@ -49,17 +49,13 @@
 # STEP 2: DEPLOY AI STACK (RBAC + CLUSTER + MODEL + SERVICE)
 # ----------------------------------------------------------------
 - name: Deploy AI Service via Helm
-  kubernetes.core.helm:
-    name: qwen-service
-    chart_ref: "{{ playbook_dir }}/../helms/ai-service"
-    release_namespace: "{{ namespace }}"
-    create_namespace: true
-    wait: true
-    kubeconfig: "{{ kubeconfig_path }}"
-    values:
-      image:
-        repository: "{{ gcp_repo_url }}/{{ ai_image_name }}"
-        tag: "{{ ai_image_tag }}"
-      
-      # [TUYỆT CHIÊU] Ansible đọc file thật, rồi nhét chữ vào biến pythonCode của Helm
-      pythonCode: "{{ lookup('file', ai_source_path + '/ray-serve/qwen_serve.py') }}"
+  ansible.builtin.shell: >
+    helm upgrade --install qwen-service "{{ playbook_dir }}/../helms/ai-service"
+    --namespace "{{ namespace }}"
+    --create-namespace
+    --set image.repository="{{ gcp_repo_url }}/{{ ai_image_name }}"
+    --set image.tag="{{ ai_image_tag }}"
+    --set-file pythonCode="{{ ai_source_path }}/ray-serve/qwen_serve.py"
+    --timeout 15m0s
+    --wait
+  changed_when: true

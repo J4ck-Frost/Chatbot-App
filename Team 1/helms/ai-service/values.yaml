@@ -1,0 +1,8 @@
+containers:
+- name: qwen-serve
+  image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+pythonCode: ""
+    
+persistence:
+  enabled: true
+  size: 50Gi
