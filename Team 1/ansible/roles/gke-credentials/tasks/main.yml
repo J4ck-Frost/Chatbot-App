@@ -1,0 +1,7 @@
+---
+- name: Authenticate GKE Cluster
+  ansible.builtin.command: >
+    gcloud container clusters get-credentials {{ tf_outputs.kubernetes_cluster_name.value }}
+    --zone {{ tf_outputs.kubernetes_cluster_location.value }}
+    --project {{ tf_outputs.project_id.value }}
+  changed_when: false

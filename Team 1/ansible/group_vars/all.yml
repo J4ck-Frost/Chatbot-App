@@ -17,7 +17,3 @@ terraform_project_path: "{{ playbook_dir }}/../environments/dev"
 
 # Paths Source Code
 ai_source_path: "{{ playbook_dir }}/../ai-model" # Đường dẫn code App
-
-
-# Timeout Deployment
-wait_timeout: 300

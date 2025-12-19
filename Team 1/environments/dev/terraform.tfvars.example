@@ -1,15 +1,23 @@
-project_name  = <your_project_name>
+project_name  = "<your_project_name>
 project_id    = <your_project_id>
-region        = <your_region>
-db_name       = <your_db_name>
-db_user       = <Your_db_user>
-db_password   = <your_db_password>
-instance_name = <Your_db_instance_name>
-zone          = <Your_zone_name>
-db_password           = <your_db_password>
-repository_id         = <Your_repository_id>
-service_account_email = <Your_service_account_email>
-cpu_pool_machine_type = <Your_cpu_pool_machine_type>
-cpu_pool_disk_size    = <Your_cpu_pool_disk_size>
-enable_gpu_pool       = <true_or_false>
-cluster_name          = <Your_cluster_name>
+region        = "asia-southeast1"
+db_name       = "num1-database"
+db_user       = "num1-user"
+db_password   = "Abc@12345678"
+instance_name = "instance-dev"
+bucket_name = "app-bucket-dev"
+repository_id         = "team1-ai-repo"
+cpu_pool_machine_type = "e2-standard-2"
+cpu_pool_disk_size    = 100
+enable_gpu_pool       = true
+gpu_node_zones = ["asia-southeast1-a", "asia-southeast1-b", "asia-southeast1-c"]
+gpu_disk_size = 100
+cluster_name          = "gke-cluster-dev"
+subnets_list = [
+  {
+    name          = "team1-subnet-dev"
+    ip_cidr_range = "10.0.1.0/24"
+    region        = "asia-southeast1"
+  }
+]
+node_zones = ["asia-southeast1-a", "asia-southeast1-b", "asia-southeast1-c"]

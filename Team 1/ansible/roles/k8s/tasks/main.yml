@@ -1,14 +1,3 @@
----
-# ----------------------------------------------------------------
-# STEP 0: AUTHENTICATION (IMPORTANT - FIX LOCALHOST:8080 ISSUE)
-# ----------------------------------------------------------------
-- name: Get GKE credentials
-  ansible.builtin.command: >
-    gcloud container clusters get-credentials {{ tf_outputs.kubernetes_cluster_name.value }}
-    --zone {{ tf_outputs.region.value }}-a
-    --project {{ tf_outputs.project_id.value }}
-  changed_when: false
-
 # ----------------------------------------------------------------
 # STEP 1: SETUP ENVIRONMENT (OPERATOR & SECRET)
 # ----------------------------------------------------------------

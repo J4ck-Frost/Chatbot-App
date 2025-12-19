@@ -106,30 +106,7 @@ resource "google_project_iam_member" "cicd_cluster_admin" {
   member  = "serviceAccount:${google_service_account.cicd_sa.email}"
 }
 
-resource "google_project_iam_member" "cicd_cloudbuild_editor" {
-  project = var.project_id
-  role    = "roles/cloudbuild.builds.editor"
-  member  = "serviceAccount:${google_service_account.cicd_sa.email}"
-}
-
-resource "google_project_iam_member" "cicd_storage_admin" {
-  project = var.project_id
-  role    = "roles/storage.admin"
-  member  = "serviceAccount:${google_service_account.cicd_sa.email}"
-}
 
 # 3. Quyền "Service Account User" (Để Cloud Build chạy được dưới danh nghĩa SA mặc định)
-resource "google_project_iam_member" "cicd_sa_user" {
-  project = var.project_id
-  role    = "roles/iam.serviceAccountUser"
-  member  = "serviceAccount:${google_service_account.cicd_sa.email}"
-}
-
-# Cấp quyền xem Logs (Để gcloud stream log về GitHub Actions)
-resource "google_project_iam_member" "cicd_log_viewer" {
-  project = var.project_id
-  role    = "roles/logging.viewer"
-  member  = "serviceAccount:${google_service_account.cicd_sa.email}"
-}
 
 

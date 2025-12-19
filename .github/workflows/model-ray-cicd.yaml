@@ -104,7 +104,7 @@ jobs:
           # 1. Chờ tối đa 5 phút
           kubectl wait --for=condition=ready pod -l app=qwen-ray-serve -n $NAMESPACE --timeout=300s || true
 
-          # Lấy tên Pod Client thực tế (Sửa default -> $NAMESPACE)
+          # Lấy tên Pod Client
           CLIENT_POD=$(kubectl get pod -l app=qwen-ray-serve -n $NAMESPACE -o jsonpath="{.items[0].metadata.name}")
           
           # Kiểm tra nếu không tìm thấy Pod (Biến rỗng) thì báo lỗi ngay
@@ -135,7 +135,7 @@ jobs:
 
           # 3. QUYẾT ĐỊNH & ROLLBACK
           if [ "$SUCCESS" = true ]; then
-            echo " DEPLOYMENT THÀNH CÔNG RỰC RỠ!"
+            echo " DEPLOYMENT THÀNH CÔNG!"
           else
             echo " DEPLOYMENT THẤT BẠI! API KHÔNG TRẢ LỜI 200 OK."
             

@@ -1,0 +1,183 @@
+# --- 0. Khai báo biến mặc định ---
+- name: Set monitoring variables
+  set_fact:
+    monitor_namespace: monitoring
+    app_namespace: default
+    helm_release_name: monitor
+    loki_release_name: logger
+
+# --- 1. Tạo Namespace ---
+- name: Create 'monitoring' namespace
+  kubernetes.core.k8s:
+    name: "{{ monitor_namespace }}"
+    api_version: v1
+    kind: Namespace
+    state: present
+
+# --- 2. Thêm Helm Repos ---
+- name: Add Prometheus Community Helm repo
+  kubernetes.core.helm_repository:
+    name: prometheus-community
+    repo_url: https://prometheus-community.github.io/helm-charts
+
+- name: Add Grafana Helm repo
+  kubernetes.core.helm_repository:
+    name: grafana
+    repo_url: https://grafana.github.io/helm-charts
+
+# --- 3. Cài Loki & Promtail ---
+- name: Deploy Loki Stack (Logging)
+  kubernetes.core.helm:
+    name: "{{ loki_release_name }}"
+    chart_ref: grafana/loki-stack
+    release_namespace: "{{ monitor_namespace }}"
+    update_repo_cache: yes
+    wait: yes
+    values:
+      promtail:
+        enabled: true
+        # Cấu hình Promtail để parse log tốt hơn (Optional)
+        config:
+          snippets:
+            pipelineStages:
+              - docker: {}
+      loki:
+        enabled: true
+        isDefault: false
+        persistence:
+          enabled: true
+          size: 10Gi
+
+# --- 4. Cài Prometheus & Grafana ---
+- name: Deploy Kube Prometheus Stack (Monitoring)
+  kubernetes.core.helm:
+    name: "{{ helm_release_name }}"
+    chart_ref: prometheus-community/kube-prometheus-stack
+    release_namespace: "{{ monitor_namespace }}"
+    update_repo_cache: yes
+    wait: yes
+    timeout: 15m # Tăng timeout lên chút để an toàn
+    values:
+      grafana:
+        service:
+          type: LoadBalancer
+        adminPassword: "admin"
+        
+        # Cấu hình Sidecar Datasource (Để nạp Prometheus mặc định)
+        sidecar:
+          datasources:
+            enabled: true
+            defaultDatasourceEnabled: true
+            isDefaultDatasource: true
+            
+        # Thêm Loki vào Datasource của Grafana
+        additionalDataSources:
+          - name: Loki
+            type: loki
+            access: proxy
+            url: "http://{{ loki_release_name }}-loki.{{ monitor_namespace }}.svc:3100"
+            jsonData:
+              maxLines: 1000
+              # Tạo liên kết từ Log sang Trace (nếu sau này dùng Tempo)
+              derivedFields:
+                - datasourceUid: prometheus
+                  matcherRegex: "traceID=(\\w+)"
+                  name: TraceID
+                  url: "$${__value.raw}"
+
+      # Cấu hình Prometheus Operator để nhận diện các Rule/Monitor bên ngoài
+      prometheus:
+        prometheusSpec:
+          serviceMonitorSelector:
+            matchLabels:
+              release: "{{ helm_release_name }}"
+          ruleSelector:
+            matchLabels:
+              release: "{{ helm_release_name }}"
+
+# --- 5. Cấu hình Alert Rules ---
+- name: Create Prometheus Alert Rules
+  kubernetes.core.k8s:
+    state: present
+    namespace: "{{ monitor_namespace }}"
+    definition:
+      apiVersion: monitoring.coreos.com/v1
+      kind: PrometheusRule
+      metadata:
+        name: ai-cluster-alerts
+        labels:
+          release: "{{ helm_release_name }}" # Quan trọng: Phải khớp với ruleSelector ở trên
+      spec:
+        groups:
+          - name: ai-infrastructure
+            rules:
+              - alert: NodeHighCPU
+                expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+                for: 5m
+                labels:
+                  severity: warning
+                annotations:
+                  summary: !unsafe "Node {{ $labels.instance }} High CPU usage"
+                  description: !unsafe "Node {{ $labels.instance }} CPU usage is above 85%."
+
+              - alert: PodCrashLooping
+                expr: rate(kube_pod_container_status_restarts_total[15m]) * 60 * 5 > 0
+                for: 5m
+                labels:
+                  severity: critical
+                annotations:
+                  summary: !unsafe "Pod {{ $labels.pod }} is restarting frequently"
+                  description: !unsafe "Pod {{ $labels.pod }} is restarting frequently. Check log!"
+
+# --- 6. Cấu hình ServiceMonitor cho Ray ---
+- name: Create ServiceMonitor for Ray
+  kubernetes.core.k8s:
+    state: present
+    namespace: "{{ monitor_namespace }}"
+    definition:
+      apiVersion: monitoring.coreos.com/v1
+      kind: ServiceMonitor
+      metadata:
+        name: ray-cluster-monitor
+        namespace: "{{ monitor_namespace }}"
+        labels:
+          release: "{{ helm_release_name }}" # Quan trọng
+      spec:
+        selector:
+          matchLabels:
+            ray.io/cluster: ray-cluster
+        namespaceSelector:
+          matchNames:
+            - "{{ app_namespace }}"
+        endpoints:
+          - port: metrics # Yêu cầu Service của Ray phải đặt tên port là 'metrics'
+            interval: 15s
+            path: /metrics
+
+# --- 7. Lấy thông tin kết nối ---
+- name: Wait for Grafana Service IP
+  kubernetes.core.k8s_info:
+    kind: Service
+    namespace: "{{ monitor_namespace }}"
+    name: "{{ helm_release_name }}-grafana"
+  register: grafana_svc
+  # Check kỹ hơn: Đôi khi Ingress chưa có IP ngay
+  until: >
+    grafana_svc.resources[0].status.loadBalancer.ingress is defined and 
+    grafana_svc.resources[0].status.loadBalancer.ingress | length > 0
+  retries: 30
+  delay: 10
+
+- name: Display Connection Info
+  debug:
+    msg:
+      - "=================================================="
+      - "✅ PLG Stack Deployed Successfully!"
+      - "--------------------------------------------------"
+      - "Grafana URL: http://{{ grafana_svc.resources[0].status.loadBalancer.ingress[0].ip }}:80"
+      - "User: admin / Pass: admin"
+      - "--------------------------------------------------"
+      - "🔍 Test Log: Vào Explore -> Chọn DataSource 'Loki'"
+      - "🔍 Test Metric: Vào Explore -> Chọn DataSource 'Prometheus'"
+      - "=================================================="
+  ignore_errors: true

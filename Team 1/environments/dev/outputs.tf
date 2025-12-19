@@ -39,3 +39,8 @@ output "kubernetes_cluster_name" {
   description = "GKE Cluster Name"
   value       = module.gke.cluster_name 
 }
+
+output "kubernetes_cluster_location" {
+  description = "GKE Cluster Location (Zone or Region)"
+  value       = module.gke.cluster_location
+}

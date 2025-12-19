@@ -18,26 +18,38 @@
       include_role:
         name: terraform
       tags: ['infra', 'terraform']
+    
+    - name: Authenticate GKE Cluster
+      include_role:
+        name: gke-credentials
+      tags: ['credentials'] # Luôn chạy để đảm bảo connect đúng cluster
 
-    # ----------------------------------------------------------------
-    # BƯỚC 2: AI MODEL (Build -> Deploy)
-    # ----------------------------------------------------------------
-    # - name: Build Qwen AI Image (Cloud Build)
-    #   include_role:
-    #     name: docker_ai_build
-    #   tags: ['ai', 'build']
+    # # ----------------------------------------------------------------
+    # # BƯỚC 2: AI MODEL (Build -> Deploy)
+    # # ----------------------------------------------------------------
+    - name: Build Qwen AI Image (Cloud Build)
+      include_role:
+        name: docker_ai_build
+      tags: ['ai', 'build']
 
-    # - name: Deploy Ray Cluster & Qwen Model
-    #   include_role:
-    #     name: k8s
-    #   vars:
-    #     ansible_python_interpreter: /usr/bin/python3
-    #   tags: ['ai', 'deploy']
+    - name: Deploy Ray Cluster & Qwen Model
+      include_role:
+        name: k8s
+      vars:
+        ansible_python_interpreter: /usr/bin/python3
+      tags: ['ai', 'deploy']
 
-    # ----------------------------------------------------------------
-    # BƯỚC 3: WEB APP (Build -> Deploy Helm + Kết nối AI)
-    # ----------------------------------------------------------------
+    # # ----------------------------------------------------------------
+    # # BƯỚC 3: WEB APP (Build -> Deploy Helm + Kết nối AI)
+    # # ----------------------------------------------------------------
     - name: Build & Deploy Web App
       include_role:
         name: chatbot-app-deploy
       tags: ['app', 'deploy']
+    
+
+    # must run this command"gcloud container clusters get-credentials gke-cluster-dev --zone=asia-southeast1-a" before running the playbook
+    - name: Deploy Log & Monitoring Stack
+      include_role:
+        name: log-monitoring
+      tags: ['monitoring', 'logs']
