@@ -76,5 +76,3 @@ Chatbot UI:
 kubectl get svc -n chatbot
 # Access: http://<CHATBOT_SERVICE_IP>
 ```
-
-```
