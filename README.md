@@ -78,5 +78,3 @@ kubectl get svc -n chatbot
 ```
 
 ```
-
----
